@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! command -v sbx >/dev/null 2>&1; then
+	echo "No sbx CLI found in PATH." >&2
+	echo "Install it with: brew install docker/tap/sbx" >&2
+	exit 1
+fi
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 KIT="${REPO}/sbxclaude"
 AGENT="sbxclaude" # == spec.yaml name:
 SANDBOX="$(basename "${PWD}" | tr -c 'a-zA-Z0-9-' '-' | sed 's/-*$//')"
 if [[ -z "${SANDBOX}" ]]; then
-	echo "sbxclaude: could not derive a sandbox name from the current directory (${PWD})" >&2
+	echo "Could not derive a sandbox name from the current directory (${PWD})" >&2
 	exit 1
 fi
 
 case "${1:-}" in
---validate) exec sbx kit validate "${KIT}" ;;
+-v | --validate) exec sbx kit validate "${KIT}" ;;
 --inspect) exec sbx inspect "${SANDBOX}" ;;
 --log) exec sbx policy log "${SANDBOX}" ;;
 --check)
