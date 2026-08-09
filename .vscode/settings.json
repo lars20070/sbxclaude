@@ -1,0 +1,11 @@
+{
+  "chat.useAgentsMdFile": true,
+  "[shellscript]": {
+    "editor.insertSpaces": false,
+    "editor.detectIndentation": true
+  },
+  "[makefile]": {
+    "editor.insertSpaces": false,
+    "editor.detectIndentation": true
+  }
+}
