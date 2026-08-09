@@ -7,7 +7,8 @@ if ! command -v sbx >/dev/null 2>&1; then
 	exit 1
 fi
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+REPO="$(cd "$(dirname "${SCRIPT}")/.." && pwd)"
 KIT="${REPO}/sbxclaude"
 AGENT="sbxclaude" # == spec.yaml name:
 SANDBOX="$(basename "${PWD}" | tr -c 'a-zA-Z0-9-' '-' | sed 's/-*$//')"

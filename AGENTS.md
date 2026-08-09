@@ -15,8 +15,8 @@
 
 ## Commands
 
-```
-make validate-kit                          # validate sbxclaude/spec.yaml against the current Sandbox Kit schema
+```bash
+make validate-kit                          # validate the kit spec against the current Docker Sandbox Kit schema
 shellcheck --enable=all scripts/sbxclaude   # lint the wrapper script
 bash -n scripts/sbxclaude                   # syntax-check the wrapper script
 cspell "**/*.md" "scripts/**" "sbxclaude/**/*.yaml"   # spell-check
