@@ -1,5 +1,6 @@
 MARKDOWNLINT ?= markdownlint-cli2
 YAMLLINT ?= yamllint
+CSPELL ?= cspell
 
 .PHONY: lint test validate
 
@@ -8,7 +9,9 @@ lint:
 	git ls-files -z -- '*.md' | xargs -0 $(MARKDOWNLINT)
 	git ls-files -z -- '*.json' | xargs -0 -n1 jq empty
 	git ls-files -z -- '*.yaml' '*.yml' | xargs -0 $(YAMLLINT)
+	$(CSPELL) "**/*.md" "scripts/**"
 	shellcheck --enable=all scripts/sbxclaude tests/sbxclaude_test.sh
+	bash -n scripts/sbxclaude
 	@echo "All lint checks passed."
 
 # Test the wrapper with a fake sbx CLI.
