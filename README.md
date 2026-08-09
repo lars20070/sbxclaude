@@ -1,7 +1,7 @@
 # sbxclaude
 
 `sbxclaude` runs Claude Code in an isolated sandbox, with a fixed toolchain
-already installed. Think of it as a customized version of `sbx run claude`. 
+already installed. Think of it as a customized version of `sbx run claude`.
 
 ## What it does
 
@@ -14,7 +14,8 @@ Each sandbox gets:
 - Your project mounted as the workspace — edits land on your real files
 
 The kit spec lives in `sbxclaude/spec.yaml`. `scripts/sbxclaude` is a wrapper
-around the `sbx` CLI that builds (or re-attaches to) one sandbox per project.
+around the `sbx` CLI that builds (or re-attaches to) one sandbox per project,
+named `sbxclaude-<project_directory>`.
 
 ## Install
 

@@ -16,6 +16,7 @@ if [[ -z "${SANDBOX}" ]]; then
 	echo "Could not derive a sandbox name from the current directory (${PWD})" >&2
 	exit 1
 fi
+SANDBOX="sbxclaude-${SANDBOX}"
 
 case "${1:-}" in
 -v | --validate) exec sbx kit validate "${KIT}" ;;
