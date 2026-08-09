@@ -18,13 +18,13 @@ fi
 
 case "${1:-}" in
 -v | --validate) exec sbx kit validate "${KIT}" ;;
---inspect) exec sbx inspect "${SANDBOX}" ;;
---log) exec sbx policy log "${SANDBOX}" ;;
+-i | --inspect) exec sbx inspect "${SANDBOX}" ;;
+-l | --log) exec sbx policy log "${SANDBOX}" ;;
 --check)
 	shift
 	exec sbx policy check network "$@"
 	;;
---exec)
+-e | --exec)
 	shift
 	exec sbx exec "${SANDBOX}" -- "$@"
 	;;
@@ -33,8 +33,12 @@ case "${1:-}" in
 	sbx rm --force "${SANDBOX}" 2>/dev/null || true
 	shift
 	;;
+--create)
+	sbx kit validate "${KIT}" >/dev/null
+	exec sbx create --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" . # build only, don't attach
+	;;
 -h | --help)
-	echo "sbxclaude [--rebuild|--reload|--validate|--inspect|--log|--check HOST|--exec CMD...]"
+	echo "sbxclaude [--rebuild|--reload|--create|--validate|--inspect|--log|--check HOST|--exec CMD...]"
 	exit 0
 	;;
 *) ;; # no flag, or a prompt for the agent — fall through and pass "$@" below
