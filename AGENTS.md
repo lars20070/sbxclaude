@@ -31,6 +31,15 @@ no Docker, no `sbx login`, and no network, so there's no reason to skip it.
 Before finishing any task that touches `scripts/sbxclaude`, run both
 `shellcheck --enable=all` and `bash -n` on it.
 
+## Changelog
+
+- Maintain `CHANGELOG.md` using Keep a Changelog and Semantic Versioning.
+- Add notable user-facing changes under `## [Unreleased]`, grouped under
+  `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, or `Security`.
+- Skip entries for tests, formatting, internal refactors, and documentation
+  changes that do not affect users.
+- For a release, move the relevant entries to `## [X.Y.Z] - YYYY-MM-DD`.
+
 ## Skills
 
 - `context7-docs` — fetch current library/framework docs before writing code
