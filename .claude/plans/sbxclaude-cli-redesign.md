@@ -4,7 +4,7 @@
 
 `scripts/sbxclaude` is a 58-line flag-based wrapper around the `sbx` CLI. Its
 flags grew one at a time and were never designed as a set, and its trailing
-`*)` case forwards any unrecognised argument straight to Claude Code, so the
+`*)` case forwards any unrecognized argument straight to Claude Code, so the
 script is simultaneously a sandbox manager and a Claude front-end.
 
 The goal is to make it **only a sandbox lifecycle tool**, addressed with
@@ -42,8 +42,15 @@ current script.
 | `help`, `-h`, `--help` | usage text |
 | anything else | error: unknown command |
 
-`name` performs no `sbx` call, so dispatch it before checking whether `sbx` is
-installed.
+`name` is pure computation and makes no `sbx` call, but it sits behind the same
+`sbx`-installed check as every other command. The script keeps **one gate and
+one dispatch point**; on a machine without `sbx`, every invocation gives the
+same actionable message (`brew install docker/tap/sbx`). `name` takes no
+arguments and is arity-checked like the rest.
+
+Because `name` is a pure computation it also works *before* the sandbox
+exists, which `inspect` cannot do — that is what makes it usable for
+pre-creation scripting.
 
 Two-word commands are nested, matching sbx's own structure, so
 `sbxclaude X Y` runs `sbx X Y` with the sandbox name and kit path filled in.
@@ -145,7 +152,7 @@ Verified against real paths:
 
 ## Expected size
 
-The result is roughly **85–90 non-blank lines**, up from today's 58. The growth
+The result is roughly **90–95 non-blank lines**, up from today's 58. The growth
 is deliberate and buys:
 
 - a real `usage()` (today's help is a one-line `echo`) — `AGENTS.md:13` points
@@ -178,16 +185,23 @@ the arity helper.
 A fake `sbx` on `PATH` that appends its argv to a log file, so dispatch is
 provable without touching a real sandbox:
 
-- **Name derivation / `name`** (needs no `sbx` call): output is exactly the
-  derived name; two directories sharing a basename differ; the same directory
-  is stable across runs; a symlink and its target agree; a basename that
-  sanitizes to empty still yields a valid name.
+- **Name derivation / `name`**: output is exactly the derived name and nothing
+  else, with no `sbx` call logged; two directories sharing a basename differ;
+  the same directory is stable across runs; a symlink and its target agree; a
+  basename that sanitizes to empty still yields a valid name.
 - **Attach**: missing sandbox → `kit validate` then
   `run --name S --kit K AGENT`; existing sandbox → `run --name S` only. Assert
   neither call contains `--`.
 - **`rm`** issues exactly one `sbx rm`, with **no** `--force`.
-- **Arity**: `inspect extra`, `create extra`, bare `kit`, bare `policy`, and
-  `policy check` with 0 or 2 arguments each emit **no** `sbx` call at all.
+- **Arity**: `rm extra`, `name extra`, `inspect extra`, `create extra`, bare
+  `kit`, bare `policy`, and `policy check` with 0 or 2 arguments each emit
+  **no** `sbx` call at all. `rm extra` matters most: it is the one destructive
+  command, and without the check it would remove this directory's sandbox
+  while appearing to act on the extra argument.
+- **Single-call commands**: `inspect`, `kit validate`, and `policy log` each
+  produce exactly one `sbx` call with the correct operand — the sandbox name
+  for the first and last, the kit path for `kit validate`. `help` produces
+  none and prints the usage text.
 - **Unknown command** (`sbxclaude foo`) errors and emits no `sbx` call.
 - **`exec`**: `-it` present under a pty, absent when stdin is a pipe; a leading
   `-` in the first token is rejected.
