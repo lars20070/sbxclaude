@@ -1,0 +1,7 @@
+rules:
+  document-start: disable
+  line-length: disable
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
