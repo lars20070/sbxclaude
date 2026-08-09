@@ -211,7 +211,7 @@ provable without touching a real sandbox:
 
 - `bash -n scripts/sbxclaude`, and `shellcheck --enable=all` on both the script
   and the test file.
-- `make lint`, `make test`, `make validate-kit`.
+- `make lint`, `make test`, `make validate`.
 - `cspell "**/*.md" "scripts/**" "sbxclaude/**/*.yaml"` — new command names may
   trip the dictionary.
 - `./scripts/sbxclaude name` — prints only the expected sandbox name.

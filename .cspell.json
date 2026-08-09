@@ -16,6 +16,8 @@
     "passwordless",
     "sandboxed",
     "shellcheck",
+    "readlink",
+    "elif",
     "nullglob",
     "pytest",
     "pyproject",

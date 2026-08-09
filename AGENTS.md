@@ -11,12 +11,13 @@
 - `sbxclaude/files/` — files copied into the sandbox at kit-build time.
 - `scripts/sbxclaude` — wrapper CLI around `sbx` that creates, rebuilds, and
   re-attaches the per-project sandbox. Run `./scripts/sbxclaude -h` for the
-  current flag list rather than relying on this doc, which won't track it.
+  current command list rather than relying on this doc, which won't track it.
 
 ## Commands
 
 ```bash
-make validate-kit   # validate against the current Docker Sandbox Kit schema
+make test           # test wrapper dispatch with a fake sbx CLI
+make validate       # validate against the current Docker Sandbox Kit schema
 shellcheck --enable=all scripts/sbxclaude   # lint the wrapper script
 bash -n scripts/sbxclaude                   # syntax-check the wrapper script
 cspell "**/*.md" "scripts/**" "sbxclaude/**/*.yaml"   # spell-check
@@ -25,7 +26,7 @@ cspell "**/*.md" "scripts/**" "sbxclaude/**/*.yaml"   # spell-check
 ## Critical Requirement
 
 Before finishing any task that touches `sbxclaude/spec.yaml` or
-`sbxclaude/files/`, run `make validate-kit` — it's a static schema check with
+`sbxclaude/files/`, run `make validate` — it's a static schema check with
 no Docker, no `sbx login`, and no network, so there's no reason to skip it.
 Before finishing any task that touches `scripts/sbxclaude`, run both
 `shellcheck --enable=all` and `bash -n` on it.

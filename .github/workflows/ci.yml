@@ -32,11 +32,25 @@ jobs:
       - name: Lint (markdownlint, jq, shellcheck)
         run: make lint MARKDOWNLINT='npx --yes markdownlint-cli2'
 
+  # Test the wrapper's dispatch against a fake sbx CLI on PATH — no real
+  # sandbox, no Docker, no network.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test wrapper
+        run: make test
+
   # Validate sbxclaude/spec.yaml against the current Sandbox Kit schema.
   # Static check — no Docker or login; only the CLI download needs the
   # network. Install steps mirror docker/sbx-kits-contrib's
   # .github/workflows/e2e.yml.
-  validate-kit:
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -62,4 +76,4 @@ jobs:
         run: sbx version
 
       - name: Validate kit spec
-        run: make validate-kit
+        run: make validate

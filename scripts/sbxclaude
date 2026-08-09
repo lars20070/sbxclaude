@@ -1,6 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+die() {
+	echo "sbxclaude: $*" >&2
+	exit 1
+}
+
+no_args() {
+	local command="$1"
+	shift
+	[[ "$#" -eq 0 ]] || die "'${command}' takes no arguments"
+}
+
+usage() {
+	cat <<'EOF'
+Usage:
+  sbxclaude                    Attach; create first if missing
+  sbxclaude name               Print the sandbox name
+  sbxclaude exec CMD...        Run a command in the sandbox
+  sbxclaude inspect            Show the sandbox state
+  sbxclaude create             Create without attaching
+  sbxclaude rm                 Remove (destructive; confirms first)
+  sbxclaude kit validate       Validate the sandbox kit
+  sbxclaude policy log         Show the sandbox policy log
+  sbxclaude policy check HOST  Check sandbox network access to HOST
+  sbxclaude help               Show this help (-h and --help also work)
+
+This wrapper accepts only the signatures above. Use sbx or claude directly for
+other options, Claude prompts and flags, and stop. For direct sbx commands, get
+the sandbox name with: S="$(sbxclaude name)"
+EOF
+}
+
 if ! command -v sbx >/dev/null 2>&1; then
 	echo "No sbx CLI found in PATH." >&2
 	echo "Install it with: brew install docker/tap/sbx" >&2
@@ -11,48 +42,60 @@ SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO="$(cd "$(dirname "${SCRIPT}")/.." && pwd)"
 KIT="${REPO}/sbxclaude"
 AGENT="sbxclaude" # == spec.yaml name:
-SANDBOX="$(basename "${PWD}" | tr -c 'a-zA-Z0-9-' '-' | sed 's/-*$//')"
-if [[ -z "${SANDBOX}" ]]; then
-	echo "Could not derive a sandbox name from the current directory (${PWD})" >&2
-	exit 1
+DIR="$(pwd -P)"
+SLUG="$(basename "${DIR}" | tr -c 'a-zA-Z0-9-' '-' | sed 's/-*$//')"
+if command -v shasum >/dev/null 2>&1; then
+	HASH="$(printf '%s' "${DIR}" | shasum -a 256 | cut -c1-6)"
+elif command -v sha256sum >/dev/null 2>&1; then
+	HASH="$(printf '%s' "${DIR}" | sha256sum | cut -c1-6)"
+else
+	die "shasum or sha256sum is required"
 fi
-SANDBOX="sbxclaude-${SANDBOX}"
+SANDBOX="sbxclaude-${SLUG:+${SLUG}-}${HASH}"
 
 case "${1:-}" in
--v | --validate) exec sbx kit validate "${KIT}" ;;
--i | --inspect) exec sbx inspect "${SANDBOX}" ;;
--l | --log) exec sbx policy log "${SANDBOX}" ;;
---check)
-	shift
-	exec sbx policy check network "$@"
-	;;
--e | --exec)
-	shift
-	if [[ -t 0 ]]; then
-		exec sbx exec -it "${SANDBOX}" -- "$@" # interactive terminal: allocate a tty
-	else
-		exec sbx exec "${SANDBOX}" -- "$@"
-	fi
-	;;
---reload) exec sbx kit add "${SANDBOX}" "${KIT}" ;; # recreates, keeps state
---rebuild)
-	sbx rm --force "${SANDBOX}" 2>/dev/null || true
-	shift
-	;;
---create)
-	sbx kit validate "${KIT}" >/dev/null
-	exec sbx create --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" . # build only, don't attach
-	;;
--h | --help)
-	echo "sbxclaude [--rebuild|--reload|--create|--validate|--inspect|--log|--check HOST|--exec CMD...]"
-	exit 0
-	;;
-*) ;; # no flag, or a prompt for the agent — fall through and pass "$@" below
+	"")
+		if sbx inspect "${SANDBOX}" >/dev/null 2>&1; then
+			exec sbx run --name "${SANDBOX}"
+		fi
+		sbx kit validate "${KIT}" >/dev/null
+		exec sbx run --name "${SANDBOX}" --kit "${KIT}" "${AGENT}"
+		;;
+	name) shift; no_args name "$@"; printf '%s\n' "${SANDBOX}" ;;
+	exec)
+		shift
+		[[ "$#" -gt 0 ]] || die "'exec' requires CMD"
+		[[ "$1" != -* ]] || die "'exec' CMD cannot start with '-'; use sbx directly for exec options"
+		if [[ -t 0 ]]; then
+			exec sbx exec -it "${SANDBOX}" -- "$@"
+		else
+			exec sbx exec "${SANDBOX}" -- "$@"
+		fi
+		;;
+	inspect) shift; no_args inspect "$@"; exec sbx inspect "${SANDBOX}" ;;
+	create) shift; no_args create "$@"; exec sbx create --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" . ;;
+	rm) shift; no_args rm "$@"; exec sbx rm "${SANDBOX}" ;;
+	kit)
+		shift
+		case "${1:-}" in
+			validate) shift; no_args "kit validate" "$@"; exec sbx kit validate "${KIT}" ;;
+			"") die "'kit' requires a subcommand: validate" ;;
+			*) die "unknown kit command: $1" ;;
+		esac
+		;;
+	policy)
+		shift
+		case "${1:-}" in
+			log) shift; no_args "policy log" "$@"; exec sbx policy log "${SANDBOX}" ;;
+			check)
+				shift
+				[[ "$#" -eq 1 ]] || die "'policy check' requires exactly one HOST"
+				exec sbx policy check network --sandbox "${SANDBOX}" "$1"
+				;;
+			"") die "'policy' requires a subcommand: log or check" ;;
+			*) die "unknown policy command: $1" ;;
+		esac
+		;;
+	help | -h | --help) shift; no_args help "$@"; usage ;;
+	*) die "unknown command: $1 (run 'sbxclaude help' for usage)" ;;
 esac
-
-if sbx inspect "${SANDBOX}" >/dev/null 2>&1; then
-	exec sbx run --name "${SANDBOX}" -- "$@" # re-attach
-fi
-
-sbx kit validate "${KIT}" >/dev/null
-exec sbx run --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" -- "$@" # first create
