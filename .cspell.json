@@ -43,6 +43,10 @@
     "sbxclaude",
     "pypi",
     "pythonhosted",
-    "esac"
+    "esac",
+    "checkmake",
+    "semgrep",
+    "languagetool",
+    "Mcpjson"
   ]
 }
