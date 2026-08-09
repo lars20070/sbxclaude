@@ -43,6 +43,12 @@ Pass it a prompt, and Claude gets straight to work:
 sbxclaude "fix the failing test in foo.py"
 ```
 
+Need a shell instead of Claude? Use `--exec`:
+
+```bash
+sbxclaude --exec bash
+```
+
 ### Flags
 
 | Flag | Effect |

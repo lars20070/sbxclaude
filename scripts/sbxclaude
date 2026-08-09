@@ -28,7 +28,11 @@ case "${1:-}" in
 	;;
 -e | --exec)
 	shift
-	exec sbx exec "${SANDBOX}" -- "$@"
+	if [[ -t 0 ]]; then
+		exec sbx exec -it "${SANDBOX}" -- "$@" # interactive terminal: allocate a tty
+	else
+		exec sbx exec "${SANDBOX}" -- "$@"
+	fi
 	;;
 --reload) exec sbx kit add "${SANDBOX}" "${KIT}" ;; # recreates, keeps state
 --rebuild)
