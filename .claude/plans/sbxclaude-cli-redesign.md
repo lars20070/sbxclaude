@@ -8,12 +8,13 @@ flags grew one at a time and were never designed as a set, and its trailing
 script is simultaneously a sandbox manager and a Claude front-end.
 
 The goal is to make it **only a sandbox lifecycle tool**, addressed with
-`sbx`-shaped subcommands. Anything it does not expose is reachable by calling
-`sbx` (or `claude`) directly.
+`sbx`-shaped subcommands. A `name` command exposes the derived sandbox name so
+anything else is reachable by calling `sbx` (or `claude`) directly.
 
 Scope of the wrapper after this change:
 
-- It manages the sandbox: attach, create, remove, inspect, validate, policy.
+- It manages the sandbox: attach, create, remove, inspect, validate, policy,
+  name.
 - It does **not** pass prompts or flags to Claude Code, and does not wrap
   `sbx stop`.
 
@@ -30,6 +31,7 @@ current script.
 | Command | Runs |
 | --- | --- |
 | (no args) | attach; create first if missing |
+| `name` | `printf '%s\n' "${SANDBOX}"` |
 | `exec CMD...` | `sbx exec [-it] S -- CMD...` |
 | `inspect` | `sbx inspect S` |
 | `create` | `sbx create --name S --kit K AGENT .` |
@@ -39,6 +41,9 @@ current script.
 | `policy check HOST` | `sbx policy check network --sandbox S HOST` |
 | `help`, `-h`, `--help` | usage text |
 | anything else | error: unknown command |
+
+`name` performs no `sbx` call, so dispatch it before checking whether `sbx` is
+installed.
 
 Two-word commands are nested, matching sbx's own structure, so
 `sbxclaude X Y` runs `sbx X Y` with the sandbox name and kit path filled in.
@@ -68,7 +73,8 @@ sbxclaude      # recreates from the kit and attaches
 
 The help text must state that the wrapper exposes only these signatures.
 `inspect --json`, `policy log --json`, `exec -w`, `sbx stop`, and any Claude
-flag require calling `sbx` or `claude` directly.
+flag require calling `sbx` or `claude` directly. For commands that need the
+sandbox name, use `S="$(sbxclaude name)"`.
 
 ## Defects in the current script to fix
 
@@ -159,8 +165,8 @@ the arity helper.
   the no-argument case attaches.
 - `Makefile` — `--validate` → `kit validate`; add a `test` target.
 - `README.md` — flag table becomes a command table; document the rebuild
-  recipe, the naming migration, and that prompts, Claude flags, and `stop`
-  require `sbx` or `claude` directly.
+  recipe, the naming migration, `name` for direct `sbx` calls, and that
+  prompts, Claude flags, and `stop` require `sbx` or `claude` directly.
 - `AGENTS.md` — "current flag list" → "command list"; add `make test`.
 - `.github/workflows/ci.yml` — add a `make test` step to the lint job. It needs
   no real `sbx`, because the tests supply a fake one on `PATH`.
@@ -172,9 +178,10 @@ the arity helper.
 A fake `sbx` on `PATH` that appends its argv to a log file, so dispatch is
 provable without touching a real sandbox:
 
-- **Name derivation** (needs no `sbx` at all): two directories sharing a
-  basename differ; the same directory is stable across runs; a symlink and its
-  target agree; a basename that sanitizes to empty still yields a valid name.
+- **Name derivation / `name`** (needs no `sbx` call): output is exactly the
+  derived name; two directories sharing a basename differ; the same directory
+  is stable across runs; a symlink and its target agree; a basename that
+  sanitizes to empty still yields a valid name.
 - **Attach**: missing sandbox → `kit validate` then
   `run --name S --kit K AGENT`; existing sandbox → `run --name S` only. Assert
   neither call contains `--`.
@@ -193,6 +200,7 @@ provable without touching a real sandbox:
 - `make lint`, `make test`, `make validate-kit`.
 - `cspell "**/*.md" "scripts/**" "sbxclaude/**/*.yaml"` — new command names may
   trip the dictionary.
+- `./scripts/sbxclaude name` — prints only the expected sandbox name.
 - `./scripts/sbxclaude help` — commands, the destructive marker on `rm`, and
   the "use sbx directly" note.
 - Live, read-only only: `inspect`, `policy log`, `policy check github.com`.
