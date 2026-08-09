@@ -1,0 +1,41 @@
+schemaVersion: "2"
+kind: sandbox
+name: sbxclaude
+version: "0.1.0"
+displayName: Claude Code with custom toolchain
+description: Claude Code with custom toolchain
+
+extends: claude
+
+sandbox:
+  entrypoint: [claude] # Drops --dangerously-skip-permissions
+  resources:
+    cpu: 8
+    memory: 24g
+
+agentInstructions:
+  content: |
+    ## Sandbox environment
+    You are in a Docker Sandbox microVM. The user's project is mounted as
+    your workspace, and edits apply directly to the host working tree.
+    `sudo` is passwordless. Docker is available inside the sandbox. Network
+    egress is allowlisted — if a fetch fails, ask the user to allow it with
+    `sbx policy allow network "<host>"` rather than assuming the host is down.
+
+permissions:
+  network:
+    allow:
+      - "registry.npmjs.org:443"
+      - "github.com:443"
+      - "pypi.org:443"
+      - "files.pythonhosted.org:443"
+      - "openrouter.ai:443"
+      - "pi.dev:443"
+
+setup:
+  install:
+    - command: "apt-get update && apt-get install -y jq ripgrep"
+      description: CLI tools
+    - command: "uv tool install ruff@latest"
+      user: "1000"
+      description: Ruff
