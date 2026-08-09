@@ -11,9 +11,12 @@ BEFORE building a workaround.
    `repository` field in package.json, project URL in PyPI/pyproject.toml,
    the Go module path, or Cargo.toml. Do not guess the repo.
 2. Use the GitHub MCP server (issues toolset) to search that repo:
-   - `search_issues` with a distinctive substring of the error message plus
-     `is:issue is:open` (or `state:open`). Search the key symbol/message, not
-     the whole stack trace.
+   - Before any remote call, redact secrets, signed URLs, internal host names,
+     file paths, and user identifiers from the error data. Retain only a short,
+     non-sensitive error signature; skip `search_issues` if no safe query
+     remains.
+   - Call `search_issues` with that signature plus `is:issue is:open` (or
+     `state:open`). Search the key symbol/message, not the whole stack trace.
    - Open the best matches with `issue_read` (`method: "get"` for the issue
      body, then `method: "get_comments"` — a separate call — for maintainer
      replies and any linked fix or workaround; `get` alone won't surface
