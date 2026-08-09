@@ -207,7 +207,7 @@ pass "unknown commands make no sbx calls"
 
 clear_log
 printf '' | run_cli "${WORK_A}" exec echo hello >/dev/null
-assert_log "$(printf 'exec\t%s\t--\techo\thello' "${SANDBOX}")" "piped exec"
+assert_log "$(printf 'exec\t-i\t%s\t--\techo\thello' "${SANDBOX}")" "piped exec"
 
 clear_log
 # Runs the wrapper under a real pty (stdin from a plain pipe is never a tty)

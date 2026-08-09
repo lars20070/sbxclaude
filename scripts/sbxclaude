@@ -69,7 +69,7 @@ case "${1:-}" in
 		if [[ -t 0 ]]; then
 			exec sbx exec -it "${SANDBOX}" -- "$@"
 		else
-			exec sbx exec "${SANDBOX}" -- "$@"
+			exec sbx exec -i "${SANDBOX}" -- "$@"
 		fi
 		;;
 	inspect) shift; no_args inspect "$@"; exec sbx inspect "${SANDBOX}" ;;
