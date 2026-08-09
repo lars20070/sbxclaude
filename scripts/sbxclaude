@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+KIT="${REPO}/sbxclaude"
+AGENT="sbxclaude" # == spec.yaml name:
+SANDBOX="$(basename "${PWD}" | tr -c 'a-zA-Z0-9-' '-' | sed 's/-*$//')"
+if [[ -z "${SANDBOX}" ]]; then
+	echo "sbxclaude: could not derive a sandbox name from the current directory (${PWD})" >&2
+	exit 1
+fi
+
+case "${1:-}" in
+--validate) exec sbx kit validate "${KIT}" ;;
+--inspect) exec sbx inspect "${SANDBOX}" ;;
+--log) exec sbx policy log "${SANDBOX}" ;;
+--check)
+	shift
+	exec sbx policy check network "$@"
+	;;
+--exec)
+	shift
+	exec sbx exec "${SANDBOX}" -- "$@"
+	;;
+--reload) exec sbx kit add "${SANDBOX}" "${KIT}" ;; # recreates, keeps state
+--rebuild)
+	sbx rm --force "${SANDBOX}" 2>/dev/null || true
+	shift
+	;;
+-h | --help)
+	echo "sbxclaude [--rebuild|--reload|--validate|--inspect|--log|--check HOST|--exec CMD...]"
+	exit 0
+	;;
+*) ;; # no flag, or a prompt for the agent — fall through and pass "$@" below
+esac
+
+if sbx inspect "${SANDBOX}" >/dev/null 2>&1; then
+	exec sbx run --name "${SANDBOX}" -- "$@" # re-attach
+fi
+
+sbx kit validate "${KIT}" >/dev/null
+exec sbx run --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" -- "$@" # first create
