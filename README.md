@@ -38,6 +38,12 @@ sbxclaude
 The first run builds a sandbox for that directory and attaches to it. Later
 runs re-attach to the same sandbox, so your work carries over.
 
+To enter the sandbox with a Bash shell:
+
+```bash
+sbxclaude exec bash
+```
+
 ### Commands
 
 | Command | Effect |
