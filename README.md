@@ -1,7 +1,7 @@
 # sbxclaude
 
-sbxclaude runs Claude Code in an isolated sandbox, with a fixed toolchain
-already installed.
+`sbxclaude` runs Claude Code in an isolated sandbox, with a fixed toolchain
+already installed. Think of it as a customized version of `sbx run claude`. 
 
 ## What it does
 
@@ -14,24 +14,16 @@ Each sandbox gets:
 - Your project mounted as the workspace — edits land on your real files
 
 The kit spec lives in `sbxclaude/spec.yaml`. `scripts/sbxclaude` is a wrapper
-around the `sbx` CLI that builds, or re-attaches to, one sandbox per project.
+around the `sbx` CLI that builds (or re-attaches to) one sandbox per project.
 
 ## Install
 
-You need the `sbx` CLI:
+You need the `sbx` CLI and add `sbxclaude` to your `PATH`. For example
 
 ```bash
 brew install docker/tap/sbx
+ln -s /path_to_sbxclaude_repo/scripts/sbxclaude ~/.local/bin/sbxclaude
 ```
-
-Then put the wrapper on your `PATH`. A symlink works well:
-
-```bash
-ln -s /path/to/sbxclaude/scripts/sbxclaude ~/.local/bin/sbxclaude
-```
-
-Use the directory you cloned this repo into, and any directory already on
-your `PATH`.
 
 ## Use
 
@@ -54,16 +46,12 @@ sbxclaude "fix the failing test in foo.py"
 
 | Flag | Effect |
 | --- | --- |
-| `-v`, `--validate` | Check the kit spec against the current schema |
-| `-i`, `--inspect` | Show the sandbox's state |
-| `-l`, `--log` | Show its network policy log |
+| `--help` | Show usage |
+| `--validate` | Check the kit spec against the current schema |
+| `--inspect` | Show the sandbox's state |
+| `--log` | Show its network policy log |
 | `--check HOST` | Check network access to `HOST` |
-| `-e`, `--exec CMD...` | Run `CMD` inside the sandbox |
+| `--exec CMD` | Run `CMD` inside the sandbox |
 | `--create` | Build the sandbox, don't attach |
 | `--reload` | Recreate the sandbox from the kit, keep its state |
 | `--rebuild` | Remove the sandbox, then build it fresh |
-| `-h`, `--help` | Show usage |
-
-## Develop
-
-See `AGENTS.md` for how to lint and validate this repo.
