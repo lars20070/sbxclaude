@@ -20,11 +20,9 @@ sandbox:
     - |
       set -eu
       owner="$(id -u):$(id -g)"
-      for path in "$HOME/.claude" "$HOME/.claude"/*; do
-        if [ -e "$path" ] || [ -L "$path" ]; then
-          sudo chown -h "$owner" "$path"
-        fi
-      done
+      if [ -e "$HOME/.claude" ] || [ -L "$HOME/.claude" ]; then
+        sudo chown -hR -P "$owner" -- "$HOME/.claude"
+      fi
       exec claude "$@"
     - sbxclaude-entrypoint
   resources:
