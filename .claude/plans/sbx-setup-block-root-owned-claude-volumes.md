@@ -1,8 +1,11 @@
-# Analysis: EACCES on transcript writes — root-owned `.claude` state volumes
+# Analysis: dropped parent setup in `extends: claude` kits
 
 **Date:** 2026-08-10
-**Status:** Root cause confirmed by controlled experiment. Fix implemented in
-`sbxclaude/spec.yaml`; end-to-end verification not yet run.
+**Status:** Root cause confirmed. Two defects found. The committed entrypoint
+change is an interim workaround, not the final fix.
+
+Every experimental result below was reproduced independently twice. Claims
+that could not be substantiated are called out explicitly.
 
 ## Symptom
 
@@ -13,20 +16,21 @@ Starting `sbxclaude` in this repo, Claude Code reports:
   · recent messages may not be saved for resume
 ```
 
-The sandbox is otherwise usable — only transcript, session, todo, shell-snapshot,
-and statsig persistence fails, so `--resume` loses history.
+The sandbox is otherwise usable — only transcript, session, todo,
+shell-snapshot, and statsig persistence fails, so `--resume` loses history.
 
 ## Root cause
 
-**A kit containing a `setup:` block causes sbx to provision the Claude state
-volumes without chowning them to the sandbox user.** They come up as raw
+**Defining a `setup:` block in a kit that uses `extends: claude` replaces the
+parent's entire `setup:` block instead of merging with it.** The base `claude`
+kit registers a startup command that chowns the Claude state volumes; a derived
+kit with its own `setup:` silently loses it, so those volumes stay as raw
 `mkfs.ext4` output — `root:root`, mode `755` — while Claude Code runs as
-`uid=1000(agent)`, which lands in the "other" permission bucket: read and list,
-no write.
+`uid=1000(agent)`, landing in the "other" bucket: read and list, no write.
 
-This is an upstream `sbx` bug, not something specific to this repo's design. It
-is triggered by *any* kit with a `setup:` block, including a single no-op
-command. The `entrypoint: [claude]` override is **not** implicated.
+The `entrypoint` override is **not** implicated in this defect. Any child
+`setup:` block triggers it, including a single no-op command, whether that
+command runs as root or as user 1000.
 
 ## Environment
 
@@ -57,35 +61,55 @@ In the broken sandbox all five are `root:root`. A `lost+found` directory inside
 volumes — they live on the normal container filesystem and are correctly owned
 by `agent`. That split is exactly why the sandbox works except for persistence.
 
-The chown is performed by sbx/sandboxd itself, not by in-image init: the image
-has no entrypoint script (`/usr/local/bin` contains only clipboard helpers) and
-`/etc/sandbox-persistent.sh` is zero bytes.
+### What the base kit registers, and what we lose
+
+Startup output quoted in [#408][i408] shows a plain `claude` run registering
+**3 install** and **3 startup** commands, the first startup command being the
+ownership repair itself:
+
+```text
+→ register 4 startup command(s), run on every container start
+  + sh -c chown -R agent:agent /home/agent/.claude/projects /ho…
+      (kit=claude, user=0)
+  + sh -c command -v apt-get > /dev/null 2>&1 && (apt-get updat…
+      (kit=claude, user=root)
+  + sh -c set -e [ -n "$MCP_GATEWAY_URL" ] || exit 0 export PAT…
+      (kit=claude, user=agent)
+  + …                                              (kit=<child>, user=1000)
+```
+
+`sbx kit inspect sbxclaude` on this repo's kit reports:
+
+```text
+Policies:
+  Commands:     2 install, 0 startup, 0 init files
+```
+
+Two install commands — ours — and **zero** startup commands. The parent's
+three install and three startup commands are gone, not concatenated. That is
+the defect, observed directly.
+
+The lost commands are broader than the chown: MCP gateway wiring and an
+apt-get startup step are also missing from this repo's sandboxes.
 
 ### The controlled experiment
 
-Six configurations, all on sbx 0.38.0 against the same base image. The three
-throwaway kits were created via an identical `sbx create` → `sbx exec` path and
-removed afterwards.
+Six configurations on sbx 0.38.0 against the same base image, each run twice
+with different no-op setup commands (`touch /tmp/x` and `true`), same results:
 
 | Kit configuration | `.claude` volume owner |
 | --- | --- |
-| Plain `claude` agent, no kit (`claude-md2okf`) | `agent:agent` ✅ |
+| Plain `claude` agent, no kit | `agent:agent` ✅ |
 | `extends: claude`, nothing else | `agent:agent` ✅ |
 | `extends: claude` + `entrypoint: [claude]` | `agent:agent` ✅ |
 | `extends: claude` + one **root** setup step | `root:root` ❌ |
 | `extends: claude` + one **user-1000** setup step | `root:root` ❌ |
 | This repo's exact original `spec.yaml` | `root:root` ❌ |
 
-Both setup-step kits used a single no-op command, `touch /tmp/x`.
-
-Reading the table:
-
-- Rows 2–3 clear the entrypoint override — it was the leading suspect and is
-  innocent.
-- Rows 4–5 isolate `setup:` as the sole trigger, and show the step's `user:`
-  field is irrelevant; a no-op command suffices.
-- Row 1 confirms the plain agent is healthy, with real `.jsonl` transcripts
-  written under `~/.claude/projects/-Users-lars-Code-md2okf/`.
+Rows 2–3 clear the entrypoint override. Rows 4–5 isolate `setup:` as the sole
+trigger and show the step's `user:` field is irrelevant. Row 1 confirms the
+plain agent is healthy, with real `.jsonl` transcripts written under
+`~/.claude/projects/`.
 
 ### Minimal reproducer
 
@@ -101,38 +125,48 @@ extends: claude
 
 setup:
   install:
-    - command: "touch /tmp/x"
+    - command: "true"
 ```
 
-Create a sandbox from this kit, then inspect `~/.claude/projects` — it is
+Create a sandbox from this kit and inspect `~/.claude/projects` — it is
 `root:root`, and Claude Code running as `agent` cannot write transcripts.
+`sbx kit inspect` on it reports `0 startup` commands.
 
-### Mechanism (hypothesis — not verified)
+## Second defect: the entrypoint override never dropped yolo mode
 
-A kit with setup steps presumably makes sbx build a *derived* image, and the
-state-volume initialization that runs on the base-agent path is skipped or not
-re-applied for that derived path, leaving the volumes as raw `mkfs.ext4`
-output. Consistent with all observations, but not confirmed against sbx
-internals (the CLI is closed-source).
+This repo's README, `CHANGELOG.md`, and the old `spec.yaml` comment all claimed
+`entrypoint: [claude]` drops `--dangerously-skip-permissions`. **It does not.**
 
-## Why the fix has to live in the entrypoint
+The kit reference states: "The effective command is `entrypoint` plus
+`command.default` for non-interactive launches, and `entrypoint` plus
+`command.interactive` for TTY sessions." A bare `entrypoint: [claude]` supplies
+a binary with no run options, so the parent agent's interactive arguments still
+apply.
 
-`setup.install` commands are baked in at kit-build time. The five volumes are
-attached at container **start**, mounting *over* whatever those paths held in
-the image — so anything chowned during setup is masked before Claude Code runs.
-The repair must happen after the volumes are attached and before `claude`
-launches. `sandbox.entrypoint` is the only such hook the kit controls, and this
-kit already overrides it (to drop `--dangerously-skip-permissions`).
-`sudo` is passwordless in the sandbox, so no extra privilege setup is needed.
+Confirmed at runtime by launching each kit under a pty and reading
+`/proc/*/cmdline` inside the sandbox:
 
-## Implemented fix
+| Kit `entrypoint` | Actual process argv |
+| --- | --- |
+| `[claude]` | `claude --dangerously-skip-permissions` |
+| current wrapper (below) | `claude` |
 
-`sbxclaude/spec.yaml` now wraps the entrypoint:
+So the security claim was false for the repo's entire history, and the
+ownership workaround incidentally made it true: the wrapper supplies explicit
+run options, which replace the inherited interactive arguments, leaving `"$@"`
+empty.
+
+That is load-bearing behavior resting on an undocumented detail. `exec claude
+"$@"` would forward the inherited flag if sbx ever appended it. Dropping
+`"$@"`, or setting an explicit `command:` override, would make the guarantee
+robust rather than incidental.
+
+## Current workaround
+
+`sbxclaude/spec.yaml` wraps the entrypoint:
 
 ```yaml
 sandbox:
-  # Repair root-owned Claude state volumes before starting without
-  # --dangerously-skip-permissions.
   entrypoint:
     - sh
     - -c
@@ -150,59 +184,87 @@ sandbox:
 
 Design notes:
 
-- **Shallow, not recursive.** The volumes contain nothing but `lost+found` at
-  mount time, so chowning `.claude` and its immediate children is sufficient;
-  Claude Code then creates everything beneath them itself with correct
-  ownership. Avoids a recursive walk on every start and leaves `lost+found`
-  at its filesystem-expected `root:root 700`.
-- **`$(id -u):$(id -g)`** rather than a hardcoded `agent:agent`, so it survives
-  a change to the image's user.
-- **`-e`/`-L` guard** handles the literal-glob case under `set -u` and broken
-  symlinks; **`chown -h`** avoids dereferencing a symlink out of `.claude`.
-- **`exec claude "$@"`** replaces the shell rather than leaving a wrapper,
-  preserving signal handling. `sbxclaude-entrypoint` is `$0`, a readable
-  process name.
+- **Shallow, not recursive.** The volumes hold nothing but `lost+found` at
+  mount time, so chowning `.claude` and its immediate children suffices.
+  Upstream's own repair is `chown -R` scoped to the five paths, run as
+  `user=0` without `sudo`.
+- **`$(id -u):$(id -g)`** rather than a hardcoded `agent:agent`.
+- **`-e`/`-L` guard** handles the literal-glob case under `set -u`;
+  **`chown -h`** avoids dereferencing a symlink out of `.claude`.
 - **Trade-off:** `set -eu` means a `sudo chown` failure aborts startup rather
-  than degrading to a warning. With passwordless `sudo` this should not trigger.
+  than degrading to a warning.
 
-Validated with `make validate` (schema) and `shellcheck --shell=sh` on the
-extracted script (only style-level SC2250/SC2312 remain). `CHANGELOG.md` has a
-matching `Fixed` entry. No changes needed to `scripts/sbxclaude` or
-`tests/sbxclaude_test.sh` — those cover wrapper dispatch against a fake `sbx`
-and never read `spec.yaml`.
+Validated with `make validate` and `shellcheck --shell=sh` on the extracted
+script (only style-level SC2250/SC2312 remain).
+
+**Assessment.** It fixes the EACCES symptom and avoids the [#299][i299] startup
+race, and it happens to deliver the advertised security posture. But it
+addresses one consequence of the missing parent setup; MCP gateway wiring and
+the apt-get startup step are still absent. It should not be treated as the
+final fix.
+
+`setup.startup` is the other hook that runs after the volumes mount, but per
+[#299][i299] startup commands do not block agent launch, so a startup-command
+repair would race Claude Code's first transcript write. The entrypoint is the
+right place for this particular repair.
+
+## Caveat: the merge contract is undocumented
+
+It is tempting to call this a violation of documented schema-v2 composition
+rules — that parent and child `setup.install`, `setup.startup`, and
+`setup.files` lists are concatenated with parent entries first. **That could
+not be substantiated.** Both the kit reference and the kits overview were
+checked; neither documents merge, concatenation, or precedence for `setup:`
+across `extends`. The behavior appears undocumented rather than contradicting
+a stated rule.
+
+This matters for how the upstream report is framed: silently dropping the
+parent's ownership repair is clearly undesirable, but absent a documented merge
+contract it should be reported as a defect in effect, not as a spec violation.
 
 ## Upstream status
 
-Searched `docker/sbx-releases` (the tracker for the closed-source CLI; found via
-`brew info docker/tap/sbx`) across ~10 query angles — `EACCES`, `permission
+Searched `docker/sbx-releases` across ~10 query angles — `EACCES`, `permission
 denied`, `chown`, `transcript`, `.claude/projects`, `root owned volume`,
 `resume session`, the five directory names, and a broad `permission` sweep.
-**No existing report matches.** No sbx release notes or merged PRs claim a fix.
+**No existing report matches** this setup-inheritance defect.
 
-Related but distinct:
-
+- [#299][i299] — startup commands do not block agent launch; startup
+  preparation can race the agent.
+- [#408][i408] — documented way to override agent settings does not work;
+  its output shows the built-in Claude ownership startup command in v0.38.0.
+- [#409](https://github.com/docker/sbx-releases/issues/409) — another v0.38.0
+  regression involving custom kit configuration, not this merge failure.
 - [#113](https://github.com/docker/sbx-releases/issues/113) — mounting host
-  `~/.claude` into the sandbox (open). Confirms `/home/agent` as the runtime
-  user and that `projects/` and `shell-snapshots/` are special-cased paths.
-- [#51](https://github.com/docker/sbx-releases/issues/51) — Linux virtiofs
-  blocked file creation (closed/fixed). Same genus — guest UID not translating
-  to write access on a host-provisioned mount — different mechanism.
-- [#76](https://github.com/docker/sbx-releases/issues/76),
-  [#400](https://github.com/docker/sbx-releases/issues/400) — other
-  `mkfs.ext4` provisioning bugs, confirming it as sbx's volume mechanism.
+  `~/.claude` into the sandbox.
 - [#47](https://github.com/docker/sbx-releases/issues/47) /
   [#131](https://github.com/docker/sbx-releases/issues/131) — an
-  entrypoint-overriding kit is Docker's own recommended way to drop
-  `--dangerously-skip-permissions`, with a maintainer noting "run options are
-  not customizable with custom agents... yet".
+  entrypoint-overriding kit is Docker's recommended way to drop
+  `--dangerously-skip-permissions`; per the runtime probe above, the bare form
+  of that advice does not actually work.
 
-## Open items
+[i299]: https://github.com/docker/sbx-releases/issues/299
+[i408]: https://github.com/docker/sbx-releases/issues/408
 
-- [ ] End-to-end verification (not yet run): `sbxclaude rm` then `sbxclaude`,
-      confirm the five directories are `agent`-owned, the EACCES warning is
-      gone, and a session resumes after detach/reattach.
-- [ ] Decide whether to file the minimal reproducer upstream against
-      `docker/sbx-releases` — public action, needs sign-off.
-- [ ] `.claude/plans/please-add-a-plan-reactive-hare.md` has a stale Context
-      section attributing the bug to a generic base-agent provisioning gap.
-      Superseded by this document.
+## Recommended next steps
+
+1. **Correct the security claims** in `README.md` and `CHANGELOG.md`, and make
+   the yolo-mode drop explicit rather than incidental (drop `"$@"` or set an
+   explicit `command:`).
+2. **Evaluate moving the tool installs into a separate mixin kit** supplied
+   alongside the derived sandbox. If runtime composition appends mixin setup
+   while preserving the base Claude setup, that restores every lost parent
+   command and makes the entrypoint chown removable. Unverified against
+   v0.38.0 — needs testing before adoption.
+3. **Report upstream** with the minimal reproducer, framed as described above.
+4. **End-to-end verification** of the current workaround: `sbxclaude rm`, then
+   `sbxclaude`; confirm the five directories are `agent`-owned, the EACCES
+   warning is gone, and a session resumes after detach and reattach.
+5. After restoring inherited setup, **remove the entrypoint chown** and retest
+   transcript creation, restart, and resume.
+
+## Superseded
+
+`.claude/plans/please-add-a-plan-reactive-hare.md` attributes the bug to a
+generic base-agent provisioning gap and claims the entrypoint is the only
+available hook. Both are wrong; this document replaces it.

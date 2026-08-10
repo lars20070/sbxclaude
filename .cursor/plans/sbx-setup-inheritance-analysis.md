@@ -1,5 +1,9 @@
 # sbx Claude setup-inheritance analysis
 
+The root cause was reproduced independently with multiple disposable kits and
+different no-op setup commands. The current entrypoint change is an interim
+workaround, not the final fix.
+
 ## Problem
 
 Starting this repository's `sbxclaude` kit produced the following Claude Code
@@ -77,6 +81,10 @@ setup:
 Result: all five state directories remained `root:root` and were not writable
 by `agent`.
 
+The result was the same when the no-op command ran as root or explicitly as
+UID 1000. Repeating the matrix with both `true` and `touch /tmp/x` produced the
+same outcome, as did testing this repository's original specification.
+
 The repository's composed kit similarly reported its two child install
 commands but zero startup commands. The inherited Claude ownership command was
 absent.
@@ -88,14 +96,18 @@ causes the parent's setup commands to be dropped instead of merged.
 
 This contradicts the official schema-v2 composition rules, which specify that
 parent and child `setup.install`, `setup.startup`, and `setup.files` lists are
-concatenated with parent entries first.
+concatenated with parent entries first. Docker publishes this rule in its
+[schema-v2 composition documentation][composition].
 
 The permission error is therefore a consequence of an sbx inheritance bug
 triggered by this repository's `setup.install` block. It is not a general
 problem with `sbx run claude`, and `extends` without child setup works.
 
-The impact is broader than transcript ownership: other built-in Claude install
-and startup initialization may also be missing from the derived kit.
+The impact is broader than transcript ownership. A plain Claude composition
+registers three built-in install commands and three built-in startup commands.
+The derived kit instead exposes only its two child install commands and zero
+startup commands. In addition to ownership repair, the missing behavior
+includes MCP gateway wiring and an apt-based startup step.
 
 No existing issue or merged pull request was found that reports this exact
 setup-inheritance defect.
@@ -123,7 +135,17 @@ claude --dangerously-skip-permissions
 ```
 
 The inherited command arguments remain unless they are explicitly overridden
-or bypassed.
+or bypassed. The effective process combines `sandbox.entrypoint` with the
+inherited default or interactive `sandbox.command`, so replacing only the
+binary is insufficient.
+
+The current shell wrapper happens to run plain `claude`, but this security
+behavior is incidental: its explicit shell arguments currently replace the
+inherited run options, leaving `"$@"` empty. If sbx later appends inherited
+arguments, `exec claude "$@"` could forward
+`--dangerously-skip-permissions` again. The final configuration should set an
+explicit `sandbox.command` override rather than rely on this side effect or
+discard all forwarded user arguments.
 
 ## Assessment of the current workaround
 
@@ -132,7 +154,29 @@ prevents the EACCES warning and avoids the startup race, but it only masks one
 symptom of the missing parent setup. It does not restore the other inherited
 Claude setup behavior.
 
+The implementation nevertheless has useful safety properties:
+
+- It changes ownership only at the `~/.claude` root and its immediate
+  children, avoiding a recursive walk through growing transcript history.
+- Its existence and symlink guards handle an unmatched glob and avoid
+  dereferencing a user-controlled top-level symlink.
+- It derives the owner from the runtime UID and GID instead of hardcoding
+  `agent:agent`.
+- `exec` preserves direct signal handling, while `set -eu` intentionally makes
+  ownership-repair failure abort startup instead of silently restoring the
+  original EACCES behavior.
+
+Upstream's built-in repair differs by recursively changing ownership on the
+five known state paths as root.
+
 It should therefore not be treated as the final root-cause fix.
+
+## Verification status
+
+The current wrapper passed schema validation and a disposable runtime smoke
+test: all five state roots became writable by `agent`, an interactive Claude
+startup showed no transcript warning, and reattachment remained idempotent.
+A full user-message, exit, and `--resume` cycle has not yet been exercised.
 
 ## Recommended next steps
 
@@ -144,10 +188,13 @@ It should therefore not be treated as the final root-cause fix.
    schema-v2 mixin supplied alongside the derived sandbox. Runtime kit
    composition should append the mixin setup while preserving the base Claude
    setup, but this must be verified against sbx v0.38.0.
-4. Explicitly correct the sandbox command configuration so Claude starts
-   without `--dangerously-skip-permissions`.
+4. Add an explicit `sandbox.command` override so Claude starts without
+   `--dangerously-skip-permissions` while retaining intentional forwarding of
+   user-supplied agent arguments.
 5. After verifying inherited Claude initialization, remove the entrypoint
    ownership workaround and retest transcript creation, restart, and resume.
 
 All disposable sandboxes and temporary probe kits used during this analysis
 were removed.
+
+[composition]: https://github.com/docker/sbx-kits-contrib/blob/main/skills/kit-author/topics/composition.md
