@@ -16,6 +16,8 @@ Each sandbox gets:
 - Passwordless `sudo`, and Docker, inside the sandbox
 - A network allowlist, not open internet access
 - Your project mounted as the workspace — edits land on your real files
+- GitHub SSH remotes rewritten to HTTPS inside the sandbox, so `git fetch`
+  works on the allowlisted port 443 without changing the host checkout
 
 The kit spec lives in `sbxclaude/spec.yaml`. `scripts/sbxclaude` is a wrapper
 around the `sbx` CLI that builds (or re-attaches to) one sandbox per project,
@@ -79,4 +81,46 @@ Remove and re-create the sandbox to apply changes to the kit:
 ```bash
 sbxclaude rm   # confirms (y/N)
 sbxclaude      # recreates from the kit and attaches
+```
+
+Pin bumps in `sbxclaude/spec.yaml` only take effect after this rebuild.
+
+### Pinned toolchain versions
+
+Directly installed tools are pinned so sandbox rebuilds and CI lint use the
+same known versions:
+
+| Tool | Where pinned | Version |
+| --- | --- | --- |
+| sbx (in-sandbox) | `sbxclaude/spec.yaml` | `v0.38.0` (SHA-256 verified) |
+| Ruff | `sbxclaude/spec.yaml` | `0.16.2` |
+| yamllint | `sbxclaude/spec.yaml` | `1.38.0` |
+| markdownlint-cli2 | `sbxclaude/spec.yaml`, CI | `0.23.2` |
+| CSpell | `sbxclaude/spec.yaml`, CI | `10.0.1` |
+| Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` | `4.0.0` |
+
+Intentional exceptions that stay on latest:
+
+- CI `validate` installs the latest host `sbx` CLI so schema drift fails CI
+  as soon as a new schema ships
+- `extends: claude`, `ubuntu-latest`, distro/runner apt packages, and the
+  host Homebrew `sbx` install remain floating integration surfaces
+
+To bump a pin: update the version (and sbx checksums) in the files above,
+keep `tests/toolchain_test.sh` expectations in sync, then rebuild the
+sandbox and run `make lint`, `make test-unit`, `make validate`, and
+`make test-toolchain`.
+
+### Git over HTTPS
+
+Sandbox network policy allows `github.com:443` but not SSH port 22. The kit
+rewrites `git@github.com:` and `ssh://git@github.com/` remotes to
+`https://github.com/` for the sandbox user only, so `git fetch` works without
+changing the host checkout's remote URL.
+
+Public repositories need no extra setup. For private repositories, store a
+GitHub token on the host so the credential proxy can inject it:
+
+```bash
+echo "$(gh auth token)" | sbx secret set github
 ```

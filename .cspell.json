@@ -52,6 +52,13 @@
     "checkmake",
     "semgrep",
     "languagetool",
-    "Mcpjson"
+    "Mcpjson",
+    "Nilse",
+    "basenames",
+    "arities",
+    "chdir",
+    "waitstatus",
+    "exitcode",
+    "githubcopilot"
   ]
 }

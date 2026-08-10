@@ -50,15 +50,20 @@ reviews:
         say so rather than asserting the spec is valid. Keep capabilities
         least-privilege and network access default-deny with a stated reason
         for every allowed host, keep credentials proxy-managed and real secrets
-        out of the file, pin installed versions, make setup commands
-        idempotent, and bound retries and timeouts.
+        out of the file, make setup commands idempotent, and bound retries and
+        timeouts. Direct installs (sbx release tarball, uv tools, npm globals)
+        must stay pinned to exact versions with checksum verification for the
+        sbx tarball. Do not flag extends: claude or unversioned apt packages —
+        those remain intentional floating integration surfaces.
     - path: ".github/workflows/**"
       instructions: |
-        Apply GitHub Actions best practices: pin third-party actions and
-        downloaded binaries to a version, keep workflow permissions
+        Apply GitHub Actions best practices: keep workflow permissions
         least-privilege, avoid running untrusted input with elevated
         privileges, fail loudly on download and script errors, and never echo
         secrets into logs. Keep duplicated trigger configuration in sync.
+        Pin npx package versions used for linting. Do not flag the validate
+        job's sbx /releases/latest/ download or ubuntu-latest — those are
+        intentional exceptions for schema-drift detection and runner updates.
     - path: "**/*.md"
       instructions: |
         Review documentation against the rest of the diff rather than for prose

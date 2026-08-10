@@ -16,22 +16,25 @@
 ## Commands
 
 ```bash
+make lint           # markdownlint, jq, yamllint, shellcheck, bash -n, cspell
 make test           # run all tests
 make test-unit      # test wrapper dispatch with a fake sbx CLI
 make test-toolchain # test helper tools inside the live sandbox
 make validate       # validate against the current Docker Sandbox Kit schema
-shellcheck --enable=all scripts/sbxclaude   # lint the wrapper script
-bash -n scripts/sbxclaude                   # syntax-check the wrapper script
-cspell "**/*.md" "scripts/**" "sbxclaude/**/*.yaml"   # spell-check
 ```
+
+`make lint` is the single source of truth for linting — CI runs the same
+target. Add a new check there, not as a separate command, so it can't drift.
+Unknown-but-correct words go in `.cspell.json`.
 
 ## Critical Requirement
 
 Before finishing any task that touches `sbxclaude/spec.yaml` or
 `sbxclaude/files/`, run `make validate` — it's a static schema check with
 no Docker, no `sbx login`, and no network, so there's no reason to skip it.
-Before finishing any task that touches `scripts/sbxclaude`, run both
-`shellcheck --enable=all` and `bash -n` on it.
+Before finishing any task that touches `scripts/sbxclaude` or any other shell
+script, run `make lint` — it runs `shellcheck` and `bash -n` over every
+tracked script.
 
 ## Changelog
 

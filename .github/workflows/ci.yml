@@ -15,9 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Lint Markdown, JSON, and shell. Reuses `make lint` so the lint definition
-  # lives in one place (the Makefile). markdownlint runs via npx (no global
-  # install needed); shellcheck and jq are pre-installed on ubuntu-latest.
+  # Lint Markdown, JSON, YAML, and shell, and spell-check. Reuses `make lint`
+  # so the lint definition lives in one place (the Makefile). markdownlint and
+  # cspell run via pinned npx packages; shellcheck, jq, and yamllint are
+  # pre-installed on ubuntu-latest.
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -29,8 +30,11 @@ jobs:
           # .git/config where a later third-party step could read it.
           persist-credentials: false
 
-      - name: Lint (markdownlint, jq, shellcheck)
-        run: make lint MARKDOWNLINT='npx --yes markdownlint-cli2'
+      - name: Lint (markdownlint, jq, yamllint, shellcheck, cspell)
+        run: |
+          make lint \
+            MARKDOWNLINT='npx --yes markdownlint-cli2@0.23.2' \
+            CSPELL='npx --yes cspell@10.0.1'
 
   # Test the wrapper's dispatch against a fake sbx CLI on PATH — no real
   # sandbox, no Docker, no network.
