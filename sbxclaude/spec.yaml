@@ -90,8 +90,14 @@ setup:
     - command: |
         set -eu
         arch="$(dpkg --print-architecture)"
+        # Digests from the v0.38.0 release provenance artifacts.
         case "$arch" in
-          arm64|amd64) ;;
+          amd64)
+            expected_sha256="9ebcea831d4d270e25ae1777bf15e24756abfbf8791ad27294754682838ed00b"
+            ;;
+          arm64)
+            expected_sha256="051fdf8349f8a66db47a990e11a30cd1d2e013ac6c8e42e48c072bfcec06a1d5"
+            ;;
           *)
             echo "unsupported architecture for sbx: $arch" >&2
             exit 1
@@ -100,19 +106,24 @@ setup:
         tmp="$(mktemp -d)"
         trap 'rm -rf "$tmp"' EXIT
         curl -fsSL --retry 3 --retry-delay 2 --max-time 600 \
-          "https://github.com/docker/sbx-releases/releases/latest/download/DockerSandboxes-linux-${arch}.tar.gz" \
+          "https://github.com/docker/sbx-releases/releases/download/v0.38.0/DockerSandboxes-linux-${arch}.tar.gz" \
           -o "$tmp/sbx.tar.gz"
+        actual_sha256="$(sha256sum "$tmp/sbx.tar.gz" | cut -d' ' -f1)"
+        if [ "$actual_sha256" != "$expected_sha256" ]; then
+          echo "sbx tarball checksum mismatch: got ${actual_sha256}, want ${expected_sha256}" >&2
+          exit 1
+        fi
         tar xzf "$tmp/sbx.tar.gz" -C "$tmp" docker-sbx/sbx
         install -m 0755 "$tmp/docker-sbx/sbx" /usr/local/bin/sbx
         sbx version
       description: sbx CLI for offline kit commands
-    - command: "uv tool install ruff@latest"
+    - command: "uv tool install ruff@0.16.2"
       user: "1000"
       description: Ruff
-    - command: "uv tool install yamllint@latest"
+    - command: "uv tool install yamllint@1.38.0"
       user: "1000"
       description: yamllint
-    - command: "npm install --global markdownlint-cli2@latest cspell@latest"
+    - command: "npm install --global markdownlint-cli2@0.23.2 cspell@10.0.1"
       user: "1000"
       description: Markdown and spelling linters
     # Sandbox network policy allows github.com:443 but not SSH port 22.

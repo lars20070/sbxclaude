@@ -83,6 +83,34 @@ sbxclaude rm   # confirms (y/N)
 sbxclaude      # recreates from the kit and attaches
 ```
 
+Pin bumps in `sbxclaude/spec.yaml` only take effect after this rebuild.
+
+### Pinned toolchain versions
+
+Directly installed tools are pinned so sandbox rebuilds and CI lint use the
+same known versions:
+
+| Tool | Where pinned | Version |
+| --- | --- | --- |
+| sbx (in-sandbox) | `sbxclaude/spec.yaml` | `v0.38.0` (SHA-256 verified) |
+| Ruff | `sbxclaude/spec.yaml` | `0.16.2` |
+| yamllint | `sbxclaude/spec.yaml` | `1.38.0` |
+| markdownlint-cli2 | `sbxclaude/spec.yaml`, CI | `0.23.2` |
+| CSpell | `sbxclaude/spec.yaml`, CI | `10.0.1` |
+| Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` | `4.0.0` |
+
+Intentional exceptions that stay on latest:
+
+- CI `validate` installs the latest host `sbx` CLI so schema drift fails CI
+  as soon as a new schema ships
+- `extends: claude`, `ubuntu-latest`, distro/runner apt packages, and the
+  host Homebrew `sbx` install remain floating integration surfaces
+
+To bump a pin: update the version (and sbx checksums) in the files above,
+keep `tests/toolchain_test.sh` expectations in sync, then rebuild the
+sandbox and run `make lint`, `make test-unit`, `make validate`, and
+`make test-toolchain`.
+
 ### Git over HTTPS
 
 Sandbox network policy allows `github.com:443` but not SSH port 22. The kit

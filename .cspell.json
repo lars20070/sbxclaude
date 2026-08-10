@@ -58,6 +58,7 @@
     "arities",
     "chdir",
     "waitstatus",
-    "exitcode"
+    "exitcode",
+    "lockfiles"
   ]
 }
