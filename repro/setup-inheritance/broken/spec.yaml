@@ -1,0 +1,13 @@
+schemaVersion: "2"
+kind: sandbox
+name: setup-inheritance-broken
+version: "0.1.0"
+displayName: Setup inheritance broken case
+description: Reproduces dropped parent setup commands
+
+extends: claude
+
+setup:
+  install:
+    - command: "true"
+      description: No-op child setup command
