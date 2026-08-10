@@ -47,7 +47,7 @@ check_tool_version() {
 		fail "${tool} version command failed"
 	fi
 	[[ -n "${output}" ]] || fail "${tool} version command produced no output"
-	printf '%s\n' "${output}" | grep -Fq "${expected}" ||
+	printf '%s\n' "${output}" | grep -Fqw "${expected}" ||
 		fail "${tool} version mismatch: expected '${expected}' in: ${output}"
 	pass "${tool} is ${expected}"
 }

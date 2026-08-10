@@ -92,7 +92,7 @@ setup:
     - command: |
         set -eu
         arch="$(dpkg --print-architecture)"
-        # Digests from the v0.38.0 release provenance artifacts.
+        # Digests of the v0.38.0 release assets.
         case "$arch" in
           amd64)
             expected_sha256="9ebcea831d4d270e25ae1777bf15e24756abfbf8791ad27294754682838ed00b"
@@ -128,13 +128,3 @@ setup:
     - command: "npm install --global markdownlint-cli2@0.23.2 cspell@10.0.1"
       user: "1000"
       description: Markdown and spelling linters
-    # Sandbox network policy allows github.com:443 but not SSH port 22.
-    # Rewrite GitHub SSH remotes to HTTPS so `git fetch` works without changing
-    # the host checkout's remote URL. See:
-    # https://docs.docker.com/ai/sandboxes/troubleshooting/#ssh-and-other-non-http-connections-fail
-    - command: |
-        set -eu
-        git config --global url."https://github.com/".insteadOf "git@github.com:"
-        git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
-      user: "1000"
-      description: Rewrite GitHub SSH remotes to HTTPS

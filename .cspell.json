@@ -59,7 +59,6 @@
     "chdir",
     "waitstatus",
     "exitcode",
-    "lockfiles",
     "githubcopilot"
   ]
 }

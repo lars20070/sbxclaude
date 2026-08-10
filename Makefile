@@ -6,12 +6,12 @@ CSPELL ?= cspell
 
 # Lint tracked Markdown, JSON, YAML, and shell scripts, and spell-check
 # everything tracked.
+# `bash -n` only parses its first file argument, so feed it one at a time.
 lint:
 	git ls-files -z -- '*.md' | xargs -0 $(MARKDOWNLINT)
 	git ls-files -z -- '*.json' | xargs -0 -n1 jq empty
 	git ls-files -z -- '*.yaml' '*.yml' | xargs -0 $(YAMLLINT)
 	git ls-files -z -- '*.sh' 'scripts/*' | xargs -0 shellcheck --enable=all
-	# `bash -n` only parses its first file argument, so feed it one at a time.
 	git ls-files -z -- '*.sh' 'scripts/*' | xargs -0 -n1 bash -n
 	git ls-files -z | xargs -0 $(CSPELL) --no-progress
 	@echo "All lint checks passed."

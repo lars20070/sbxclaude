@@ -8,14 +8,6 @@ and this project adheres to
 
 ## [Unreleased]
 
-### Changed
-
-- Pin directly installed sandbox and CI tooling to exact versions (in-sandbox
-  `sbx` `v0.38.0` with SHA-256 verification, Ruff `0.16.2`, yamllint
-  `1.38.0`, markdownlint-cli2 `0.23.2`, CSpell `10.0.1`) and pin Context7
-  MCP to `4.0.0`. The CI validate job still installs the latest `sbx` CLI so
-  schema drift surfaces immediately.
-
 ### Added
 
 - Initial Docker Sandbox Kit for running Claude Code with 8 CPUs, 24 GB of
@@ -36,6 +28,14 @@ and this project adheres to
   in-sandbox `sbx`, and the pre-installed toolchain.
 - ELI5 output style, available to Claude Code inside the sandbox.
 - Installation, usage, shell-access, rebuild, and direct-`sbx` documentation.
+
+### Changed
+
+- Pin directly installed sandbox and CI tooling to exact versions (in-sandbox
+  `sbx` `v0.38.0` with SHA-256 verification, Ruff `0.16.2`, yamllint
+  `1.38.0`, markdownlint-cli2 `0.23.2`, CSpell `10.0.1`) and pin Context7
+  MCP to `4.0.0`. The CI validate job still installs the latest `sbx` CLI so
+  schema drift surfaces immediately.
 
 ### Fixed
 
