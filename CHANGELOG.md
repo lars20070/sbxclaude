@@ -10,6 +10,8 @@ and this project adheres to
 
 ### Added
 
+- In-sandbox `sbx` CLI (latest release, architecture-matched) for daemon-free
+  kit commands (`version`, `kit validate`, `kit inspect`, `kit pack`).
 - Initial Docker Sandbox Kit for running Claude Code with 8 CPUs, 24 GB of
   memory, Docker, passwordless `sudo`, and the host project mounted as the
   workspace.

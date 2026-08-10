@@ -37,14 +37,23 @@ agentInstructions:
     You are in a Docker Sandbox microVM. The user's project is mounted as
     your workspace, and edits apply directly to the host working tree.
     `sudo` is passwordless. Docker is available inside the sandbox. Network
-    egress is allowlisted — if a fetch fails, ask the user to allow it with
-    `sbx policy allow network "<host>"` rather than assuming the host is down.
+    egress is allowlisted — if a fetch fails, ask the user to allow the host
+    on the host machine with `sbx policy allow network "<host>"` rather than
+    assuming the host is down. Do not run `sbx policy` from inside the sandbox.
+
+    The in-sandbox `sbx` binary supports only daemon-free kit commands:
+    `sbx version`, `sbx kit validate`, `sbx kit inspect`, and `sbx kit pack`.
+    Sandbox management (`run`, `create`, `rm`, `exec`, `inspect` of a
+    sandbox, `policy`) requires the host `sbx` CLI and `sandboxd`; ask the
+    user to run those on the host.
 
 permissions:
   network:
     allow:
       - "registry.npmjs.org:443"
       - "github.com:443"
+      # GitHub release assets redirect here; needed to download the sbx binary.
+      - "release-assets.githubusercontent.com:443"
       - "pypi.org:443"
       - "files.pythonhosted.org:443"
       - "openrouter.ai:443"
@@ -52,8 +61,27 @@ permissions:
 
 setup:
   install:
-    - command: "apt-get update && apt-get install -y jq ripgrep"
+    - command: "apt-get update && apt-get install -y jq ripgrep curl ca-certificates"
       description: CLI tools
+    - command: |
+        set -eu
+        arch="$(dpkg --print-architecture)"
+        case "$arch" in
+          arm64|amd64) ;;
+          *)
+            echo "unsupported architecture for sbx: $arch" >&2
+            exit 1
+            ;;
+        esac
+        tmp="$(mktemp -d)"
+        trap 'rm -rf "$tmp"' EXIT
+        curl -fsSL --retry 3 --retry-delay 2 --max-time 600 \
+          "https://github.com/docker/sbx-releases/releases/latest/download/DockerSandboxes-linux-${arch}.tar.gz" \
+          -o "$tmp/sbx.tar.gz"
+        tar xzf "$tmp/sbx.tar.gz" -C "$tmp" docker-sbx/sbx
+        install -m 0755 "$tmp/docker-sbx/sbx" /usr/local/bin/sbx
+        sbx version
+      description: sbx CLI for offline kit commands
     - command: "uv tool install ruff@latest"
       user: "1000"
       description: Ruff
