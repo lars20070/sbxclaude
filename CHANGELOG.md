@@ -20,7 +20,8 @@ and this project adheres to
   network policy.
 - Interactive and piped command execution with appropriate TTY and stdin
   handling.
-- Pre-installed `jq`, `ripgrep`, and `ruff` tooling.
+- Pre-installed `jq`, `ripgrep`, `curl`, Python 3, ShellCheck, Ruff,
+  yamllint, markdownlint-cli2, and CSpell tooling.
 - Installation, usage, shell-access, rebuild, and direct-`sbx` documentation.
 
 ### Security

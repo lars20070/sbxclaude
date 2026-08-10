@@ -8,7 +8,9 @@ already installed. Think of it as a customized version of `sbx run claude`.
 Each sandbox gets:
 
 - Claude Code, with `--dangerously-skip-permissions` turned off
-- `jq`, `ripgrep`, and `ruff`, installed at build time
+- `jq`, `ripgrep`, `curl`, Python 3, and ShellCheck
+- Ruff and yamllint as Python development tools
+- markdownlint-cli2 and CSpell for documentation checks
 - An `sbx` CLI for daemon-free kit commands (`version`, `kit validate`,
   `kit inspect`, `kit pack`) so `make validate` works inside the sandbox
 - Passwordless `sudo`, and Docker, inside the sandbox

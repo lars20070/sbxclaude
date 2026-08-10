@@ -59,7 +59,16 @@ permissions:
 
 setup:
   install:
-    - command: "apt-get update && apt-get install -y jq ripgrep curl ca-certificates"
+    - command: |
+        set -eu
+        apt-get update
+        apt-get install -y \
+          ca-certificates \
+          curl \
+          jq \
+          python3 \
+          ripgrep \
+          shellcheck
       description: CLI tools
     - command: |
         set -eu
@@ -83,3 +92,9 @@ setup:
     - command: "uv tool install ruff@latest"
       user: "1000"
       description: Ruff
+    - command: "uv tool install yamllint@latest"
+      user: "1000"
+      description: yamllint
+    - command: "npm install --global markdownlint-cli2@latest cspell@latest"
+      user: "1000"
+      description: Markdown and spelling linters

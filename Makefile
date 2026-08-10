@@ -1,21 +1,28 @@
 MARKDOWNLINT ?= markdownlint-cli2
 YAMLLINT ?= yamllint
 
-.PHONY: lint validate test
+.PHONY: lint validate test test-unit test-toolchain
 
 # Lint tracked Markdown, JSON, YAML, and shell scripts.
 lint:
 	git ls-files -z -- '*.md' | xargs -0 $(MARKDOWNLINT)
 	git ls-files -z -- '*.json' | xargs -0 -n1 jq empty
 	git ls-files -z -- '*.yaml' '*.yml' | xargs -0 $(YAMLLINT)
-	shellcheck --enable=all scripts/sbxclaude tests/sbxclaude_test.sh
-	bash -n scripts/sbxclaude
+	shellcheck --enable=all scripts/sbxclaude tests/sbxclaude_test.sh tests/toolchain_test.sh
+	bash -n scripts/sbxclaude tests/sbxclaude_test.sh tests/toolchain_test.sh
 	@echo "All lint checks passed."
 
 # Validate the sandbox kit spec against the current Sandbox Kit schema.
 validate:
 	./scripts/sbxclaude kit validate
 
+# Run every test
+test: test-unit test-toolchain
+
 # Test the wrapper with a fake sbx CLI.
-test:
+test-unit:
 	./tests/sbxclaude_test.sh
+
+# Smoke-test the installed helper tools inside the live sandbox.
+test-toolchain:
+	./scripts/sbxclaude exec ./tests/toolchain_test.sh

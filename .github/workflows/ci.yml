@@ -44,7 +44,7 @@ jobs:
           persist-credentials: false
 
       - name: Test wrapper
-        run: make test
+        run: make test-unit
 
   # Validate sbxclaude/spec.yaml against the current Sandbox Kit schema.
   # Static check — no Docker or login; only the CLI download needs the
