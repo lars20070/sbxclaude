@@ -16,6 +16,8 @@ Each sandbox gets:
 - Passwordless `sudo`, and Docker, inside the sandbox
 - A network allowlist, not open internet access
 - Your project mounted as the workspace — edits land on your real files
+- GitHub SSH remotes rewritten to HTTPS inside the sandbox, so `git fetch`
+  works on the allowlisted port 443 without changing the host checkout
 
 The kit spec lives in `sbxclaude/spec.yaml`. `scripts/sbxclaude` is a wrapper
 around the `sbx` CLI that builds (or re-attaches to) one sandbox per project,
@@ -79,4 +81,18 @@ Remove and re-create the sandbox to apply changes to the kit:
 ```bash
 sbxclaude rm   # confirms (y/N)
 sbxclaude      # recreates from the kit and attaches
+```
+
+### Git over HTTPS
+
+Sandbox network policy allows `github.com:443` but not SSH port 22. The kit
+rewrites `git@github.com:` and `ssh://git@github.com/` remotes to
+`https://github.com/` for the sandbox user only, so `git fetch` works without
+changing the host checkout's remote URL.
+
+Public repositories need no extra setup. For private repositories, store a
+GitHub token on the host so the credential proxy can inject it:
+
+```bash
+echo "$(gh auth token)" | sbx secret set github
 ```

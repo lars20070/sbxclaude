@@ -115,3 +115,13 @@ setup:
     - command: "npm install --global markdownlint-cli2@latest cspell@latest"
       user: "1000"
       description: Markdown and spelling linters
+    # Sandbox network policy allows github.com:443 but not SSH port 22.
+    # Rewrite GitHub SSH remotes to HTTPS so `git fetch` works without changing
+    # the host checkout's remote URL. See:
+    # https://docs.docker.com/ai/sandboxes/troubleshooting/#ssh-and-other-non-http-connections-fail
+    - command: |
+        set -eu
+        git config --global url."https://github.com/".insteadOf "git@github.com:"
+        git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
+      user: "1000"
+      description: Rewrite GitHub SSH remotes to HTTPS

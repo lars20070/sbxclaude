@@ -38,9 +38,19 @@ check_tool yamllint yamllint --version
 check_tool markdownlint-cli2 markdownlint-cli2 --version
 check_tool cspell cspell --version
 check_tool sbx sbx version
+check_tool git git --version
 
 CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
 [[ -s "${CA_BUNDLE}" ]] || fail "CA certificate bundle is missing or empty"
 pass "CA certificate bundle is available"
+
+# Sandbox policy allows github.com:443 but not SSH port 22; the kit rewrites
+# GitHub SSH remotes to HTTPS so fetches stay on the allowlist.
+INSTEAD_OF="$(git config --global --get-all url.https://github.com/.insteadOf || true)"
+printf '%s\n' "${INSTEAD_OF}" | grep -Fxq 'git@github.com:' ||
+	fail "missing insteadOf rewrite for git@github.com:"
+printf '%s\n' "${INSTEAD_OF}" | grep -Fxq 'ssh://git@github.com/' ||
+	fail "missing insteadOf rewrite for ssh://git@github.com/"
+pass "GitHub SSH remotes rewrite to HTTPS"
 
 echo "All ${TESTS} toolchain tests passed."

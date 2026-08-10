@@ -28,6 +28,12 @@ and this project adheres to
 - ELI5 output style, available to Claude Code inside the sandbox.
 - Installation, usage, shell-access, rebuild, and direct-`sbx` documentation.
 
+### Fixed
+
+- `git fetch` against GitHub SSH remotes works inside the sandbox by rewriting
+  them to HTTPS on the allowlisted port 443, without changing the host
+  checkout's remote URL.
+
 ### Security
 
 - Claude Code runs without `--dangerously-skip-permissions`.
