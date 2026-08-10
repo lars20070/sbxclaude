@@ -39,6 +39,8 @@ and this project adheres to
 
 ### Fixed
 
+- Repository-defined GitHub and Context7 MCP servers are reachable through the
+  sandbox network allowlist.
 - `git fetch` against GitHub SSH remotes works inside the sandbox by rewriting
   them to HTTPS on the allowlisted port 443, without changing the host
   checkout's remote URL.
@@ -47,6 +49,7 @@ and this project adheres to
 
 - Claude Code runs without `--dangerously-skip-permissions`.
 - Network access is default-deny with an explicit host allowlist.
+- Unused OpenRouter and Pi hosts are no longer allowed network access.
 - The kit ships no pre-approved Bash permissions, so tool use inside the
   sandbox still goes through Claude Code's own approval.
 - Sandbox removal retains `sbx` confirmation, and invalid wrapper commands fail

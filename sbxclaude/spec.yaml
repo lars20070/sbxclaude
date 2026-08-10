@@ -66,13 +66,15 @@ permissions:
   network:
     allow:
       - "registry.npmjs.org:443"
+      # The local Context7 MCP server calls its documentation API here.
+      - "context7.com:443"
+      # The repository's GitHub MCP server uses this endpoint.
+      - "api.githubcopilot.com:443"
       - "github.com:443"
       # GitHub release assets redirect here; needed to download the sbx binary.
       - "release-assets.githubusercontent.com:443"
       - "pypi.org:443"
       - "files.pythonhosted.org:443"
-      - "openrouter.ai:443"
-      - "pi.dev:443"
 
 setup:
   install:
