@@ -226,4 +226,4 @@ assert_log "$(printf 'policy\tcheck\tnetwork\t--sandbox\t%s\tgithub.com' \
 	"${SANDBOX}")" "policy check"
 pass "policy check is scoped to the sandbox"
 
-echo "All ${TESTS} tests passed."
+echo "All ${TESTS} unit tests passed."

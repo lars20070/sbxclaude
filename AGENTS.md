@@ -16,7 +16,9 @@
 ## Commands
 
 ```bash
-make test           # test wrapper dispatch with a fake sbx CLI
+make test           # run all tests
+make test-unit      # test wrapper dispatch with a fake sbx CLI
+make test-toolchain # test helper tools inside the live sandbox
 make validate       # validate against the current Docker Sandbox Kit schema
 shellcheck --enable=all scripts/sbxclaude   # lint the wrapper script
 bash -n scripts/sbxclaude                   # syntax-check the wrapper script
