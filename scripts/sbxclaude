@@ -37,10 +37,6 @@ install_hint() {
 	echo "  Linux: curl -fsSL https://get.docker.com | sudo REPO_ONLY=1 sh" >&2
 	echo "         sudo apt-get install docker-sbx" >&2
 	echo "         sudo usermod -aG kvm \"\${USER}\" && newgrp kvm" >&2
-	# Only present when a Windows sbx leaks into PATH; no host detection needed.
-	if command -v sbx.exe >/dev/null 2>&1; then
-		echo "  Note: sbxclaude needs the Linux sbx, not sbx.exe." >&2
-	fi
 }
 
 # Called from the commands that shell out to sbx, so `name` and `help` work even where sbx is not installed.
@@ -63,8 +59,8 @@ resolve_dir() {
 		((++hops <= 40)) || die "too many symlinks resolving ${1}"
 		link="$(readlink "${path}")" || return 1
 		case "${link}" in
-			/*) path="${link}" ;;
-			*) path="$(dirname "${path}")/${link}" ;;
+		/*) path="${link}" ;;
+		*) path="$(dirname "${path}")/${link}" ;;
 		esac
 	done
 	(cd "$(dirname "${path}")" && pwd -P)
@@ -94,51 +90,84 @@ fi
 SANDBOX="sbxclaude-${SLUG:+${SLUG}-}${HASH}"
 
 case "${1:-}" in
-	"")
+"")
+	require_sbx
+	if sbx inspect "${SANDBOX}" >/dev/null 2>&1; then
+		exec sbx run --name "${SANDBOX}"
+	fi
+	sbx kit validate "${KIT}" >/dev/null
+	exec sbx run --name "${SANDBOX}" --kit "${KIT}" "${AGENT}"
+	;;
+name)
+	shift
+	no_args name "$@"
+	printf '%s\n' "${SANDBOX}"
+	;;
+exec)
+	shift
+	[[ "$#" -gt 0 ]] || die "'exec' requires CMD"
+	[[ "$1" != -* ]] || die "'exec' CMD cannot start with '-'; use sbx directly for exec options"
+	require_sbx
+	if [[ -t 0 ]]; then
+		exec sbx exec -it "${SANDBOX}" -- "$@"
+	else
+		exec sbx exec -i "${SANDBOX}" -- "$@"
+	fi
+	;;
+inspect)
+	shift
+	no_args inspect "$@"
+	require_sbx
+	exec sbx inspect "${SANDBOX}"
+	;;
+create)
+	shift
+	no_args create "$@"
+	require_sbx
+	exec sbx create --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" .
+	;;
+rm)
+	shift
+	no_args rm "$@"
+	require_sbx
+	exec sbx rm "${SANDBOX}"
+	;;
+kit)
+	shift
+	case "${1:-}" in
+	validate)
+		shift
+		no_args "kit validate" "$@"
 		require_sbx
-		if sbx inspect "${SANDBOX}" >/dev/null 2>&1; then
-			exec sbx run --name "${SANDBOX}"
-		fi
-		sbx kit validate "${KIT}" >/dev/null
-		exec sbx run --name "${SANDBOX}" --kit "${KIT}" "${AGENT}"
+		exec sbx kit validate "${KIT}"
 		;;
-	name) shift; no_args name "$@"; printf '%s\n' "${SANDBOX}" ;;
-	exec)
+	"") die "'kit' requires a subcommand: validate" ;;
+	*) die "unknown kit command: $1" ;;
+	esac
+	;;
+policy)
+	shift
+	case "${1:-}" in
+	log)
 		shift
-		[[ "$#" -gt 0 ]] || die "'exec' requires CMD"
-		[[ "$1" != -* ]] || die "'exec' CMD cannot start with '-'; use sbx directly for exec options"
+		no_args "policy log" "$@"
 		require_sbx
-		if [[ -t 0 ]]; then
-			exec sbx exec -it "${SANDBOX}" -- "$@"
-		else
-			exec sbx exec -i "${SANDBOX}" -- "$@"
-		fi
+		exec sbx policy log "${SANDBOX}"
 		;;
-	inspect) shift; no_args inspect "$@"; require_sbx; exec sbx inspect "${SANDBOX}" ;;
-	create) shift; no_args create "$@"; require_sbx; exec sbx create --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" . ;;
-	rm) shift; no_args rm "$@"; require_sbx; exec sbx rm "${SANDBOX}" ;;
-	kit)
+	check)
 		shift
-		case "${1:-}" in
-			validate) shift; no_args "kit validate" "$@"; require_sbx; exec sbx kit validate "${KIT}" ;;
-			"") die "'kit' requires a subcommand: validate" ;;
-			*) die "unknown kit command: $1" ;;
-		esac
+		[[ "$#" -eq 1 ]] || die "'policy check' requires exactly one HOST"
+		require_sbx
+		exec sbx policy check network --sandbox "${SANDBOX}" "$1"
 		;;
-	policy)
-		shift
-		case "${1:-}" in
-			log) shift; no_args "policy log" "$@"; require_sbx; exec sbx policy log "${SANDBOX}" ;;
-			check)
-				shift
-				[[ "$#" -eq 1 ]] || die "'policy check' requires exactly one HOST"
-				require_sbx
-				exec sbx policy check network --sandbox "${SANDBOX}" "$1"
-				;;
-			"") die "'policy' requires a subcommand: log or check" ;;
-			*) die "unknown policy command: $1" ;;
-		esac
-		;;
-	help | -h | --help) shift; no_args help "$@"; usage ;;
-	*) die "unknown command: $1 (run 'sbxclaude help' for usage)" ;;
+	"") die "'policy' requires a subcommand: log or check" ;;
+	*) die "unknown policy command: $1" ;;
+	esac
+	;;
+help | -h | --help)
+	shift
+	no_args help "$@"
+	usage
+	;;
+*) die "unknown command: $1 (run 'sbxclaude help' for usage)" ;;
 esac
