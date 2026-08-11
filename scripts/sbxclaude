@@ -32,18 +32,58 @@ the sandbox name with: S="$(sbxclaude name)"
 EOF
 }
 
-if ! command -v sbx >/dev/null 2>&1; then
-	echo "No sbx CLI found in PATH." >&2
-	echo "Install it with: brew install docker/tap/sbx" >&2
-	exit 1
-fi
+install_hint() {
+	echo "  macOS: brew trust docker/tap && brew install docker/tap/sbx" >&2
+	echo "  Linux: curl -fsSL https://get.docker.com | sudo REPO_ONLY=1 sh" >&2
+	echo "         sudo apt-get install docker-sbx" >&2
+	echo "         sudo usermod -aG kvm \"\${USER}\" && newgrp kvm" >&2
+	# Only present when a Windows sbx leaks into PATH; no host detection needed.
+	if command -v sbx.exe >/dev/null 2>&1; then
+		echo "  Note: sbxclaude needs the Linux sbx, not sbx.exe." >&2
+	fi
+}
 
-SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
-REPO="$(cd "$(dirname "${SCRIPT}")/.." && pwd)"
+# Called from the commands that shell out to sbx, so `name` and `help` work even where sbx is not installed.
+require_sbx() {
+	if command -v sbx >/dev/null 2>&1; then
+		return 0
+	fi
+	echo "sbxclaude: no sbx CLI found in PATH. Install it with:" >&2
+	install_hint
+	exit 1
+}
+
+# Follow symlinks without GNU `readlink -f`: BSD readlink lacked -f before macOS 12.3, and the README installs
+# this script as a symlink, so the chain has to be walked to find the kit.
+resolve_dir() {
+	local path="$1"
+	local link
+	local hops=0
+	while [[ -L "${path}" ]]; do
+		((++hops <= 40)) || die "too many symlinks resolving ${1}"
+		link="$(readlink "${path}")" || return 1
+		case "${link}" in
+			/*) path="${link}" ;;
+			*) path="$(dirname "${path}")/${link}" ;;
+		esac
+	done
+	(cd "$(dirname "${path}")" && pwd -P)
+}
+
+SCRIPT_DIR="$(resolve_dir "${BASH_SOURCE[0]}")"
+REPO="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 KIT="${REPO}/sbxclaude"
 AGENT="sbxclaude" # == spec.yaml name:
 DIR="$(pwd -P)"
-SLUG="$(basename "${DIR}" | tr -c 'a-zA-Z0-9-' '-' | sed 's/-*$//')"
+# Sanitize in pure bash. BSD tr is multibyte-aware while GNU tr is byte oriented, so `tr -c` derived a different
+# slug per platform for non-ASCII directory names, and could fail outright with an illegal byte sequence.
+SLUG="$(basename "${DIR}")"
+SLUG="${SLUG//[!a-zA-Z0-9-]/-}"
+while [[ "${SLUG%-}" != "${SLUG}" ]]; do
+	SLUG="${SLUG%-}"
+done
+# Capability probe rather than an OS check, and the pattern to copy for portability: macOS has no sha256sum,
+# minimal Linux images have no shasum. Both print "<hex>  -", so cut agrees.
 if command -v shasum >/dev/null 2>&1; then
 	HASH="$(printf '%s' "${DIR}" | shasum -a 256 | cut -c1-6)"
 elif command -v sha256sum >/dev/null 2>&1; then
@@ -55,6 +95,7 @@ SANDBOX="sbxclaude-${SLUG:+${SLUG}-}${HASH}"
 
 case "${1:-}" in
 	"")
+		require_sbx
 		if sbx inspect "${SANDBOX}" >/dev/null 2>&1; then
 			exec sbx run --name "${SANDBOX}"
 		fi
@@ -66,19 +107,20 @@ case "${1:-}" in
 		shift
 		[[ "$#" -gt 0 ]] || die "'exec' requires CMD"
 		[[ "$1" != -* ]] || die "'exec' CMD cannot start with '-'; use sbx directly for exec options"
+		require_sbx
 		if [[ -t 0 ]]; then
 			exec sbx exec -it "${SANDBOX}" -- "$@"
 		else
 			exec sbx exec -i "${SANDBOX}" -- "$@"
 		fi
 		;;
-	inspect) shift; no_args inspect "$@"; exec sbx inspect "${SANDBOX}" ;;
-	create) shift; no_args create "$@"; exec sbx create --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" . ;;
-	rm) shift; no_args rm "$@"; exec sbx rm "${SANDBOX}" ;;
+	inspect) shift; no_args inspect "$@"; require_sbx; exec sbx inspect "${SANDBOX}" ;;
+	create) shift; no_args create "$@"; require_sbx; exec sbx create --name "${SANDBOX}" --kit "${KIT}" "${AGENT}" . ;;
+	rm) shift; no_args rm "$@"; require_sbx; exec sbx rm "${SANDBOX}" ;;
 	kit)
 		shift
 		case "${1:-}" in
-			validate) shift; no_args "kit validate" "$@"; exec sbx kit validate "${KIT}" ;;
+			validate) shift; no_args "kit validate" "$@"; require_sbx; exec sbx kit validate "${KIT}" ;;
 			"") die "'kit' requires a subcommand: validate" ;;
 			*) die "unknown kit command: $1" ;;
 		esac
@@ -86,10 +128,11 @@ case "${1:-}" in
 	policy)
 		shift
 		case "${1:-}" in
-			log) shift; no_args "policy log" "$@"; exec sbx policy log "${SANDBOX}" ;;
+			log) shift; no_args "policy log" "$@"; require_sbx; exec sbx policy log "${SANDBOX}" ;;
 			check)
 				shift
 				[[ "$#" -eq 1 ]] || die "'policy check' requires exactly one HOST"
+				require_sbx
 				exec sbx policy check network --sandbox "${SANDBOX}" "$1"
 				;;
 			"") die "'policy' requires a subcommand: log or check" ;;
