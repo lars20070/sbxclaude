@@ -112,11 +112,11 @@ same known versions:
 
 | Tool | Where pinned | Version |
 | --- | --- | --- |
-| sbx (in-sandbox) | `sbxclaude/spec.yaml` | `v0.38.0` (SHA-256 verified) |
-| Ruff | `sbxclaude/spec.yaml` | `0.16.2` |
-| yamllint | `sbxclaude/spec.yaml` | `1.38.0` |
-| markdownlint-cli2 | `sbxclaude/spec.yaml`, CI | `0.23.2` |
-| CSpell | `sbxclaude/spec.yaml`, CI | `10.0.1` |
+| `sbx` (in-sandbox) | `sbxclaude/spec.yaml` | `v0.38.0` (SHA-256 verified) |
+| `ruff` | `sbxclaude/spec.yaml` | `0.16.2` |
+| `yamllint` | `sbxclaude/spec.yaml` | `1.38.0` |
+| `markdownlint-cli2` | `sbxclaude/spec.yaml`, CI | `0.23.2` |
+| `cspell` | `sbxclaude/spec.yaml`, CI | `10.0.1` |
 | Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` | `4.0.0` |
 
 Intentional exceptions that stay on latest:
