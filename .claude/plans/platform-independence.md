@@ -64,17 +64,17 @@ everywhere), then `cd -P`:
 
 ```bash
 resolve_dir() {          # prints the canonical directory holding "$1"
-	local path="$1" link hops=0
-	while [[ -L "${path}" ]]; do
-		hops=$((hops + 1))
-		[[ "${hops}" -le 40 ]] || die "symlink loop resolving ${1}"
-		link="$(readlink "${path}")"
-		case "${link}" in
-			/*) path="${link}" ;;
-			*) path="$(dirname "${path}")/${link}" ;;
-		esac
-	done
-	(cd "$(dirname "${path}")" && pwd -P)
+  local path="$1" link hops=0
+  while [[ -L "${path}" ]]; do
+    hops=$((hops + 1))
+    [[ "${hops}" -le 40 ]] || die "symlink loop resolving ${1}"
+    link="$(readlink "${path}")"
+    case "${link}" in
+      /*) path="${link}" ;;
+      *) path="$(dirname "${path}")/${link}" ;;
+    esac
+  done
+  (cd "$(dirname "${path}")" && pwd -P)
 }
 ```
 
@@ -116,7 +116,7 @@ used by both `require_sbx` and `doctor`:
 | Host | Hint |
 | --- | --- |
 | Darwin | `brew trust docker/tap && brew install docker/tap/sbx` |
-| Linux (non-WSL) | `curl -fsSL https://get.docker.com \| sudo REPO_ONLY=1 sh` then `sudo apt-get install docker-sbx` |
+| Linux (non-WSL) | `get.docker.com` script + `apt-get install docker-sbx` |
 | WSL | same as Linux, plus the `.wslconfig` / `/dev/kvm` note |
 
 Host detection uses `uname -s`, and WSL is detected from
@@ -194,6 +194,7 @@ check fails:
 Update `usage()` (lines 15-33) and the README command table together.
 
 `doctor` should have a testable output contract:
+
 - Keep the step headings stable and in a fixed order (even if the
   per-step prose changes slightly).
 - Exit non-zero on any failure, but allow warnings/extra detail to vary
