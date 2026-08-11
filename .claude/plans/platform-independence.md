@@ -82,18 +82,18 @@ this branch has an identical copy, and all line numbers below refer to it.
 # macOS 12.3, and the README installs this script as a symlink, so the chain
 # has to be walked to find the kit.
 resolve_dir() {
-	local path="$1"
-	local link
-	local hops=0
-	while [[ -L "${path}" ]]; do
-		((++hops <= 40)) || die "too many symlinks resolving $1"
-		link="$(readlink "${path}")" || return 1
-		case "${link}" in
-			/*) path="${link}" ;;
-			*) path="$(dirname "${path}")/${link}" ;;
-		esac
-	done
-	(cd "$(dirname "${path}")" && pwd -P)
+  local path="$1"
+  local link
+  local hops=0
+  while [[ -L "${path}" ]]; do
+    ((++hops <= 40)) || die "too many symlinks resolving $1"
+    link="$(readlink "${path}")" || return 1
+    case "${link}" in
+      /*) path="${link}" ;;
+      *) path="$(dirname "${path}")/${link}" ;;
+    esac
+  done
+  (cd "$(dirname "${path}")" && pwd -P)
 }
 
 SCRIPT_DIR="$(resolve_dir "${BASH_SOURCE[0]}")"
@@ -121,7 +121,7 @@ Notes, all verified against `shellcheck --enable=all` and bash:
 SLUG="$(basename "${DIR}")"
 SLUG="${SLUG//[!a-zA-Z0-9-]/-}"
 while [[ "${SLUG%-}" != "${SLUG}" ]]; do
-	SLUG="${SLUG%-}"
+  SLUG="${SLUG%-}"
 done
 ```
 
@@ -134,23 +134,23 @@ both recipes, so there is nothing to detect:
 
 ```bash
 install_hint() {
-	echo "  macOS: brew trust docker/tap && brew install docker/tap/sbx" >&2
-	echo "  Linux: curl -fsSL https://get.docker.com | sudo REPO_ONLY=1 sh" >&2
-	echo "         sudo apt-get install docker-sbx" >&2
-	echo "         sudo usermod -aG kvm \"\${USER}\" && newgrp kvm" >&2
-	# Only present when a Windows sbx leaks into PATH; no host detection needed.
-	if command -v sbx.exe >/dev/null 2>&1; then
-		echo "  Note: sbxclaude needs the Linux sbx, not sbx.exe." >&2
-	fi
+  echo "  macOS: brew trust docker/tap && brew install docker/tap/sbx" >&2
+  echo "  Linux: curl -fsSL https://get.docker.com | sudo REPO_ONLY=1 sh" >&2
+  echo "         sudo apt-get install docker-sbx" >&2
+  echo "         sudo usermod -aG kvm \"\${USER}\" && newgrp kvm" >&2
+  # Only present when a Windows sbx leaks into PATH; no host detection needed.
+  if command -v sbx.exe >/dev/null 2>&1; then
+    echo "  Note: sbxclaude needs the Linux sbx, not sbx.exe." >&2
+  fi
 }
 
 require_sbx() {
-	if command -v sbx >/dev/null 2>&1; then
-		return 0
-	fi
-	echo "sbxclaude: no sbx CLI found in PATH. Install it with:" >&2
-	install_hint
-	exit 1
+  if command -v sbx >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "sbxclaude: no sbx CLI found in PATH. Install it with:" >&2
+  install_hint
+  exit 1
 }
 ```
 
