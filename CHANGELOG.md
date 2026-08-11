@@ -10,9 +10,8 @@ and this project adheres to
 
 ### Added
 
-- Initial Docker Sandbox Kit for running Claude Code with 8 CPUs, 24 GB of
-  memory, Docker, passwordless `sudo`, and the host project mounted as the
-  workspace.
+- Initial Docker Sandbox Kit for running Claude Code with Docker, passwordless
+  `sudo`, and the host project mounted as the workspace.
 - `sbxclaude` wrapper with per-project sandbox naming and commands to attach,
   create, remove, inspect, execute commands, validate the kit, and inspect
   network policy.
@@ -28,8 +27,15 @@ and this project adheres to
   in-sandbox `sbx`, and the pre-installed toolchain.
 - ELI5 output style, available to Claude Code inside the sandbox.
 - Installation, usage, shell-access, rebuild, and direct-`sbx` documentation.
+- Install instructions and host requirements for Linux alongside macOS.
+- `sbxclaude help` and `sbxclaude name` work before the `sbx` CLI is installed,
+  and the commands that need it report both install recipes when it is missing.
 
 ### Changed
+
+- Sandbox size follows the host (every CPU, half the memory capped at 32 GiB)
+  instead of a fixed 8 CPUs and 24 GB, so the kit also starts on smaller hosts.
+  Uncomment `resources:` in `sbxclaude/spec.yaml` to pin a fixed size.
 
 - Pin directly installed sandbox and CI tooling to exact versions (in-sandbox
   `sbx` `v0.38.0` with SHA-256 verification, Ruff `0.16.2`, yamllint
@@ -39,6 +45,10 @@ and this project adheres to
 
 ### Fixed
 
+- The wrapper no longer needs GNU `readlink -f`, so the symlink install works on
+  macOS releases before 12.3.
+- Sandbox names for projects whose directory name contains non-ASCII characters
+  are derived consistently, and no longer risk aborting the wrapper.
 - Repository-defined GitHub and Context7 MCP servers are reachable through the
   sandbox network allowlist.
 - `git fetch` against GitHub SSH remotes works inside the sandbox by rewriting
