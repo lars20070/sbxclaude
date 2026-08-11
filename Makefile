@@ -1,3 +1,4 @@
+BASH ?= bash
 MARKDOWNLINT ?= markdownlint-cli2
 YAMLLINT ?= yamllint
 CSPELL ?= cspell
@@ -25,7 +26,7 @@ test: test-unit test-toolchain
 
 # Test the wrapper with a fake sbx CLI.
 test-unit:
-	./tests/sbxclaude_test.sh
+	$(BASH) ./tests/sbxclaude_test.sh
 
 # Smoke-test the installed helper tools inside the live sandbox.
 test-toolchain:
