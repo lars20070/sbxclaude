@@ -1,7 +1,7 @@
 # sbxclaude
 
 `sbxclaude` runs Claude Code in an isolated sandbox, with a fixed toolchain
-already installed. Think of it as a customized version of `sbx run claude`.
+already installed. Think of it as a customized version of [`sbx run claude`](https://docs.docker.com/ai/sandboxes/agents/claude-code/).
 
 ## What it does
 
