@@ -20,6 +20,16 @@ fail() {
 	exit 1
 }
 
+# The exec tty test drives the wrapper under a real pty via python3, and
+# os.waitstatus_to_exitcode landed in 3.9. Check up front rather than failing
+# obscurely most of the way through the suite.
+if ! command -v python3 >/dev/null 2>&1; then
+	fail "python3 is required to test the exec tty gate"
+fi
+if ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)'; then
+	fail "python3 3.9 or newer is required (os.waitstatus_to_exitcode) to test the exec tty gate"
+fi
+
 pass() {
 	TESTS=$((TESTS + 1))
 	echo "ok ${TESTS} - $*"
@@ -35,6 +45,14 @@ assert_eq() {
 	local context="$3"
 	[[ "${actual}" == "${expected}" ]] ||
 		fail "${context}: expected '${expected}', got '${actual}'"
+}
+
+assert_match() {
+	local pattern="$1"
+	local actual="$2"
+	local context="$3"
+	[[ "${actual}" =~ ${pattern} ]] ||
+		fail "${context}: '${actual}' does not match /${pattern}/"
 }
 
 assert_log() {
@@ -56,19 +74,19 @@ run_cli() {
 	(cd "${directory}" && "${SCRIPT}" "$@")
 }
 
-expected_name() {
+# Only the slug is reproduced here. Recomputing the digest would duplicate the
+# wrapper's shasum/sha256sum fallback, so the hash is asserted by shape and the
+# properties that matter — uniqueness, stability, symlink transparency — are
+# covered by comparing names below.
+expected_slug() {
 	local directory="$1"
-	local canonical
 	local slug
-	local hash
-	canonical="$(cd "${directory}" && pwd -P)"
-	slug="$(basename "${canonical}" | tr -c 'a-zA-Z0-9-' '-' | sed 's/-*$//')"
-	if command -v shasum >/dev/null 2>&1; then
-		hash="$(printf '%s' "${canonical}" | shasum -a 256 | cut -c1-6)"
-	else
-		hash="$(printf '%s' "${canonical}" | sha256sum | cut -c1-6)"
-	fi
-	printf 'sbxclaude-%s%s\n' "${slug:+${slug}-}" "${hash}"
+	slug="$(basename "$(cd "${directory}" && pwd -P)")"
+	slug="${slug//[!a-zA-Z0-9-]/-}"
+	while [[ "${slug%-}" != "${slug}" ]]; do
+		slug="${slug%-}"
+	done
+	printf '%s\n' "${slug}"
 }
 
 reject_without_call() {
@@ -122,8 +140,7 @@ ln -s "${WORK_A}" "${LINK}"
 # unique per path, stable across runs, symlink-transparent, and never empty.
 clear_log
 NAME_A="$(run_cli "${WORK_A}" name)"
-EXPECTED_NAME="$(expected_name "${WORK_A}")"
-assert_eq "${EXPECTED_NAME}" "${NAME_A}" "derived name"
+assert_match "^sbxclaude-$(expected_slug "${WORK_A}")-[0-9a-f]{6}$" "${NAME_A}" "derived name"
 STABLE_NAME="$(run_cli "${WORK_A}" name)"
 assert_eq "${NAME_A}" "${STABLE_NAME}" "stable name"
 NAME_B="$(run_cli "${WORK_B}" name)"
@@ -225,5 +242,45 @@ run_cli "${WORK_A}" policy check github.com >/dev/null
 assert_log "$(printf 'policy\tcheck\tnetwork\t--sandbox\t%s\tgithub.com' \
 	"${SANDBOX}")" "policy check"
 pass "policy check is scoped to the sandbox"
+
+# The README installs the wrapper as a symlink, so it has to resolve its own
+# path through the chain to locate the kit. Two hops, the second one relative,
+# invoked from an unrelated directory.
+clear_log
+LINK_BIN="${TEST_ROOT}/bin-link"
+mkdir -p "${LINK_BIN}"
+ln -s "${SCRIPT}" "${LINK_BIN}/hop1"
+(cd "${LINK_BIN}" && ln -s hop1 hop2)
+(cd "${WORK_B}" && "${LINK_BIN}/hop2" kit validate >/dev/null)
+assert_log "$(printf 'kit\tvalidate\t%s' "${KIT}")" "kit path via symlinked wrapper"
+pass "a symlinked wrapper still resolves the repo kit"
+
+# require_sbx runs only in the commands that shell out to sbx, so the commands
+# that do not need it keep working on a host where sbx is not installed yet.
+MIN_BIN="${TEST_ROOT}/min-bin"
+mkdir -p "${MIN_BIN}"
+for tool in bash env cat readlink dirname basename cut shasum sha256sum; do
+	TOOL_PATH="$(command -v "${tool}" || true)"
+	if [[ -n "${TOOL_PATH}" ]]; then
+		ln -s "${TOOL_PATH}" "${MIN_BIN}/${tool}"
+	fi
+done
+
+clear_log
+NO_SBX_NAME="$( (cd "${WORK_A}" && PATH="${MIN_BIN}" "${SCRIPT}" name) )" ||
+	fail "'name' failed without sbx on PATH"
+assert_eq "${NAME_A}" "${NO_SBX_NAME}" "name without sbx"
+(cd "${WORK_A}" && PATH="${MIN_BIN}" "${SCRIPT}" help >/dev/null) ||
+	fail "'help' failed without sbx on PATH"
+
+set +e
+NO_SBX_OUTPUT="$( (cd "${WORK_A}" && PATH="${MIN_BIN}" "${SCRIPT}" inspect) 2>&1 )"
+NO_SBX_STATUS=$?
+set -e
+[[ "${NO_SBX_STATUS}" -ne 0 ]] || fail "'inspect' succeeded without sbx on PATH"
+[[ "${NO_SBX_OUTPUT}" == *"macOS:"* && "${NO_SBX_OUTPUT}" == *"Linux:"* ]] ||
+	fail "missing sbx hint did not offer both install recipes: '${NO_SBX_OUTPUT}'"
+assert_no_log "inspect without sbx"
+pass "name and help work without sbx; sbx commands fail with both install recipes"
 
 echo "All ${TESTS} unit tests passed."

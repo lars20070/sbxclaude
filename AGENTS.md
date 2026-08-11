@@ -36,6 +36,28 @@ Before finishing any task that touches `scripts/sbxclaude` or any other shell
 script, run `make lint` — it runs `shellcheck` and `bash -n` over every
 tracked script.
 
+## Portability
+
+The wrapper has to run unchanged on macOS and Linux hosts.
+
+- Probe for capabilities, never for the OS name. The `shasum` → `sha256sum`
+  fallback in `scripts/sbxclaude` is the pattern to copy; there is no `uname`
+  branch anywhere and there should not be one.
+- Say `macOS` and `Linux` in code, comments, and docs. No distro or subsystem
+  names. Identifiers are exempt: CI runner labels, `apt-get`, the `docker-sbx`
+  package, and release asset filenames.
+- bash 3.2 is the floor, because that is what macOS ships as `/bin/bash`. No
+  `declare -A`, `mapfile`, `${var,,}`, `[[ -v ]]`, and no bare `"${arr[@]}"` on
+  a possibly-empty array under `set -u`. CI pins this with
+  `make test-unit BASH=/bin/bash` on the macOS runner.
+- No GNU-only flags: `readlink -f`, `xargs -r`, `stat -c`, `date -d`, `sed -i`
+  without an argument. Watch `tr` too — BSD `tr` is multibyte-aware while GNU
+  `tr` is byte-oriented, so the two disagree on non-ASCII input.
+- Known difference, currently harmless: on empty input GNU `xargs` runs the
+  command once with no arguments while BSD `xargs` skips it. Every glob in
+  `make lint` matches at least one file today, so it does not bite; if a glob
+  ever stops matching, Linux and macOS will disagree.
+
 ## Changelog
 
 - Maintain `CHANGELOG.md` using Keep a Changelog and Semantic Versioning.

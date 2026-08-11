@@ -25,9 +25,9 @@ sandbox:
       fi
       exec claude "$@"
     - sbxclaude-entrypoint
-  resources:
-    cpu: 8
-    memory: 24g
+# resources:
+#   cpu: 8
+#   memory: 24g
 
 agentInstructions:
   content: |

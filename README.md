@@ -24,12 +24,32 @@ around the `sbx` CLI that builds (or re-attaches to) one sandbox per project,
 named `sbxclaude-<project_directory>-<hash>`. The hash comes from the
 canonical absolute path, so same-named directories do not share a sandbox.
 
+Sandbox size follows the host: every host CPU, and half the host memory capped
+at 32 GiB. To pin a fixed size instead, uncomment the `resources:` block in
+`sbxclaude/spec.yaml` and rebuild.
+
 ## Install
 
-You need the `sbx` CLI and add `sbxclaude` to your `PATH`. For example
+You need macOS 14 or later on Apple silicon, or Linux on x86_64 or aarch64 with
+KVM available. Docker Desktop is not required. Install the `sbx` CLI, sign in,
+and put `sbxclaude` on your `PATH`.
+
+macOS:
 
 ```bash
+brew trust docker/tap
 brew install docker/tap/sbx
+sbx login
+ln -s /path_to_sbxclaude_repo/scripts/sbxclaude ~/.local/bin/sbxclaude
+```
+
+Linux:
+
+```bash
+curl -fsSL https://get.docker.com | sudo REPO_ONLY=1 sh
+sudo apt-get install docker-sbx
+sudo usermod -aG kvm "$USER" && newgrp kvm
+sbx login
 ln -s /path_to_sbxclaude_repo/scripts/sbxclaude ~/.local/bin/sbxclaude
 ```
 
@@ -103,8 +123,8 @@ Intentional exceptions that stay on latest:
 
 - CI `validate` installs the latest host `sbx` CLI so schema drift fails CI
   as soon as a new schema ships
-- `extends: claude`, `ubuntu-latest`, distro/runner apt packages, and the
-  host Homebrew `sbx` install remain floating integration surfaces
+- `extends: claude`, the CI runner images, the packages those runners provide,
+  and the host `sbx` install remain floating integration surfaces
 
 To bump a pin: update the version (and sbx checksums) in the files above,
 keep `tests/toolchain_test.sh` expectations in sync, then rebuild the
