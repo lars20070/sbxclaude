@@ -165,7 +165,19 @@ check_guard_ignores "ordinary output" \
 check_guard_ignores "a Bash read of CLAUDE.md" \
 	'{"tool_name":"Bash","tool_input":{"command":"cat CLAUDE.md"},"tool_response":{"stdout":"Blocked by network policy: domain foo.test"}}'
 
-check_guard_ignores "a WebFetch of AGENTS.md" \
-	'{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/AGENTS.md"},"tool_response":{"content":"Blocked by local rule for x.test"}}'
+# A blocked WebFetch must never be exempted just because its URL happens to
+# contain one of the self-reference filenames — only a Bash read of the
+# actual file is exempt.
+check_guard_blocks "a blocked WebFetch of a URL containing AGENTS.md" \
+	'{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/AGENTS.md"},"tool_response":{"content":"Blocked by local rule for x.test"}}' \
+	'sbx policy allow network "x.test"'
+
+check_guard_blocks "a blocked WebFetch of a URL containing CLAUDE.md" \
+	'{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/CLAUDE.md"},"tool_response":{"content":"Blocked by local rule for y.test"}}' \
+	'sbx policy allow network "y.test"'
+
+check_guard_blocks "a blocked WebFetch of a URL containing spec.yaml" \
+	'{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/spec.yaml"},"tool_response":{"content":"Blocked by local rule for z.test"}}' \
+	'sbx policy allow network "z.test"'
 
 echo "All ${TESTS} toolchain tests passed."

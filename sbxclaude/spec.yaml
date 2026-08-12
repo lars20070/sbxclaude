@@ -134,13 +134,14 @@ setup:
         # PostToolUseFailure), so match the whole payload rather than a field.
         def haystack: [ del(.tool_input) | .. | strings ] | join("\n");
 
-        # The tool's own input, flattened. Bash passes .command, WebFetch .url.
-        def subject: [ (.tool_input // empty) | .. | strings ] | join(" ");
-
         # These block strings appear verbatim in this project's own docs, spec,
-        # and tests, so reading one of those files must not trip the guard.
+        # and tests, so a Bash read of one of those files must not trip the
+        # guard. Scoped to Bash's own command field so a blocked WebFetch URL
+        # that merely contains one of these filenames is never exempted.
         def self_reference:
-          subject | test("AGENTS\\.md|CLAUDE\\.md|spec\\.yaml|network-block|toolchain_test");
+          .tool_name == "Bash"
+          and ((.tool_input.command // "")
+               | test("AGENTS\\.md|CLAUDE\\.md|spec\\.yaml|network-block|toolchain_test"));
 
         def stop($why; $tell):
           { continue: false,
