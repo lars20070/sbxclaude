@@ -9,7 +9,7 @@ CSPELL ?= cspell
 # everything tracked.
 # `bash -n` only parses its first file argument, so feed it one at a time.
 lint:
-	git ls-files -z -- '*.md' | xargs -0 $(MARKDOWNLINT)
+	git ls-files -z -- '*.md' ':!.claude/plans/*' ':!.cursor/plans/*' | xargs -0 $(MARKDOWNLINT)
 	git ls-files -z -- '*.json' | xargs -0 -n1 jq empty
 	git ls-files -z -- '*.yaml' '*.yml' | xargs -0 $(YAMLLINT)
 	git ls-files -z -- '*.sh' 'scripts/*' | xargs -0 shellcheck --enable=all
