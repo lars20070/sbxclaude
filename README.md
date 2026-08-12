@@ -1,7 +1,7 @@
 # sbxclaude
 
 `sbxclaude` runs Claude Code in an isolated sandbox, with a fixed toolchain
-already installed. Think of it as a customized version of `sbx run claude`.
+already installed. Think of it as a customized version of [`sbx run claude`](https://docs.docker.com/ai/sandboxes/agents/claude-code/).
 
 ## What it does
 
@@ -9,8 +9,8 @@ Each sandbox gets:
 
 - Claude Code, with `--dangerously-skip-permissions` turned off
 - `jq`, `ripgrep`, `curl`, Python 3, and ShellCheck
-- Ruff and yamllint as Python development tools
-- markdownlint-cli2 and CSpell for documentation checks
+- `ruff` and `yamllint` as Python development tools
+- `markdownlint-cli2` and `cspell` for documentation checks
 - An `sbx` CLI for daemon-free kit commands (`version`, `kit validate`,
   `kit inspect`, `kit pack`) so `make validate` works inside the sandbox
 - Passwordless `sudo`, and Docker, inside the sandbox
@@ -112,11 +112,11 @@ same known versions:
 
 | Tool | Where pinned | Version |
 | --- | --- | --- |
-| sbx (in-sandbox) | `sbxclaude/spec.yaml` | `v0.38.0` (SHA-256 verified) |
-| Ruff | `sbxclaude/spec.yaml` | `0.16.2` |
-| yamllint | `sbxclaude/spec.yaml` | `1.38.0` |
-| markdownlint-cli2 | `sbxclaude/spec.yaml`, CI | `0.23.2` |
-| CSpell | `sbxclaude/spec.yaml`, CI | `10.0.1` |
+| `sbx` (in-sandbox) | `sbxclaude/spec.yaml` | `v0.38.0` (SHA-256 verified) |
+| `ruff` | `sbxclaude/spec.yaml` | `0.16.2` |
+| `yamllint` | `sbxclaude/spec.yaml` | `1.38.0` |
+| `markdownlint-cli2` | `sbxclaude/spec.yaml`, CI | `0.23.2` |
+| `cspell` | `sbxclaude/spec.yaml`, CI | `10.0.1` |
 | Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` | `4.0.0` |
 
 Intentional exceptions that stay on latest:
