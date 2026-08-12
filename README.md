@@ -15,6 +15,8 @@ Each sandbox gets:
   `kit inspect`, `kit pack`) so `make validate` works inside the sandbox
 - Passwordless `sudo`, and Docker, inside the sandbox
 - A network allowlist, not open internet access
+- A root-owned hook that stops the agent on a blocked request and prints the
+  `sbx policy allow` command to run
 - Your project mounted as the workspace — edits land on your real files
 - GitHub SSH remotes rewritten to HTTPS inside the sandbox, so `git fetch`
   works on the allowlisted port 443 without changing the host checkout

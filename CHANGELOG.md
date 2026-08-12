@@ -25,6 +25,11 @@ and this project adheres to
   sandbox.
 - Agent instructions covering the sandbox environment, the limits of the
   in-sandbox `sbx`, and the pre-installed toolchain.
+- Network-block escalation hook: when the sandbox network policy blocks a
+  request, the agent's turn now ends and the host to allow is printed to your
+  terminal, instead of the agent quietly working around the block. Installed
+  as root-owned managed settings so the agent cannot disable it with an
+  ordinary file edit.
 - ELI5 output style, available to Claude Code inside the sandbox.
 - Installation, usage, shell-access, rebuild, and direct-`sbx` documentation.
 - Install instructions and host requirements for Linux alongside macOS.
