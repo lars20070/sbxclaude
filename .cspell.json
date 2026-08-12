@@ -81,6 +81,11 @@
     "wslpath",
     "winget",
     "microsoft",
-    "githubcopilot"
+    "githubcopilot",
+    "JQFILTER",
+    "Centralised",
+    "organisation",
+    "behaviour",
+    "heredocs"
   ]
 }
