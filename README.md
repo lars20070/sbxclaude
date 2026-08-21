@@ -36,7 +36,7 @@ You need macOS 14 or later on Apple silicon, or Linux on x86_64 or aarch64 with
 KVM available. Docker Desktop is not required. Install the `sbx` CLI, sign in,
 and put `sbxclaude` on your `PATH`.
 
-macOS:
+[macOS:](https://docs.docker.com/ai/sandboxes/install/#install-on-macos)
 
 ```bash
 brew trust docker/tap
@@ -45,7 +45,7 @@ sbx login
 ln -s /path_to_sbxclaude_repo/scripts/sbxclaude ~/.local/bin/sbxclaude
 ```
 
-Linux:
+[Linux:](https://docs.docker.com/ai/sandboxes/install/#linux)
 
 ```bash
 curl -fsSL https://get.docker.com | sudo REPO_ONLY=1 sh
