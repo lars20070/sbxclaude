@@ -66,6 +66,8 @@ agentInstructions:
       `mmdc -i diagram.mmd -o diagram.png`
     - General: `git`, `docker`, `curl`, `node`, `npm`
     - Sandbox kits: `sbx`, with the restrictions above
+    - MCP servers: `context7` (up-to-date library/framework docs) and `github`
+      (GitHub API) are configured and ready to use
 
     Prefer `rg` over recursive `grep`, `ruff` over installing another Python
     linter or formatter, and `uv` over `pip`. Install project dependencies when
