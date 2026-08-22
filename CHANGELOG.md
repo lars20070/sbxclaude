@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-22
+
 ### Added
 
 - Initial Docker Sandbox Kit for running Claude Code with Docker, passwordless

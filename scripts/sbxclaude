@@ -17,6 +17,7 @@ usage() {
 Usage:
   sbxclaude                    Attach; create first if missing
   sbxclaude name               Print the sandbox name
+  sbxclaude version            Print the kit name and version
   sbxclaude exec CMD...        Run a command in the sandbox
   sbxclaude inspect            Show the sandbox state
   sbxclaude create             Create without attaching
@@ -102,6 +103,13 @@ name)
 	shift
 	no_args name "$@"
 	printf '%s\n' "${SANDBOX}"
+	;;
+version)
+	shift
+	no_args version "$@"
+	kit_version="$(grep -m1 '^version:' "${KIT}/spec.yaml" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+	[[ -n "${kit_version}" ]] || die "could not read version: from ${KIT}/spec.yaml"
+	printf '%s %s\n' "${AGENT}" "${kit_version}"
 	;;
 exec)
 	shift

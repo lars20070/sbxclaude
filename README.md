@@ -86,6 +86,7 @@ sbxclaude exec bash
 | `sbxclaude create` | Build the sandbox without attaching |
 | `sbxclaude rm` | Remove the sandbox after confirmation |
 | `sbxclaude name` | Print the derived sandbox name |
+| `sbxclaude version` | Print the kit name and version |
 | `sbxclaude exec CMD...` | Run a command inside the sandbox |
 | `sbxclaude inspect` | Show the sandbox's state |
 | `sbxclaude policy log` | Show the sandbox policy log |
