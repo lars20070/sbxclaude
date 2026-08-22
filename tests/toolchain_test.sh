@@ -3,7 +3,7 @@
 # Keep EXPECTED_* in sync with the pinned installs in sbxclaude/spec.yaml.
 set -euo pipefail
 
-EXPECTED_SBX_VERSION="v0.38.0"
+EXPECTED_SBX_VERSION="v0.39.0"
 EXPECTED_RUFF_VERSION="0.16.2"
 EXPECTED_YAMLLINT_VERSION="1.38.0"
 EXPECTED_MARKDOWNLINT_VERSION="0.23.2"

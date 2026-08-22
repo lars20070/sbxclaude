@@ -114,7 +114,7 @@ same known versions:
 
 | Tool | Where pinned | Version |
 | --- | --- | --- |
-| `sbx` (in-sandbox) | `sbxclaude/spec.yaml` | `v0.38.0` (SHA-256 verified) |
+| `sbx` (in-sandbox) | `sbxclaude/spec.yaml` | `v0.39.0` (SHA-256 verified) |
 | `ruff` | `sbxclaude/spec.yaml` | `0.16.2` |
 | `yamllint` | `sbxclaude/spec.yaml` | `1.38.0` |
 | `markdownlint-cli2` | `sbxclaude/spec.yaml`, CI | `0.23.2` |

@@ -94,13 +94,13 @@ setup:
     - command: |
         set -eu
         arch="$(dpkg --print-architecture)"
-        # Digests of the v0.38.0 release assets.
+        # Digests of the v0.39.0 release assets.
         case "$arch" in
           amd64)
-            expected_sha256="9ebcea831d4d270e25ae1777bf15e24756abfbf8791ad27294754682838ed00b"
+            expected_sha256="2ec45bc7938c20c2f406fe8cc72294ad5a954bdc047601484b89bf1a108311d4"
             ;;
           arm64)
-            expected_sha256="051fdf8349f8a66db47a990e11a30cd1d2e013ac6c8e42e48c072bfcec06a1d5"
+            expected_sha256="39c470a5f5e0991b1c2358952e2ab32a7b0309bfa57ac62b6bbc64b466d02c17"
             ;;
           *)
             echo "unsupported architecture for sbx: $arch" >&2
@@ -110,7 +110,7 @@ setup:
         tmp="$(mktemp -d)"
         trap 'rm -rf "$tmp"' EXIT
         curl -fsSL --retry 3 --retry-delay 2 --max-time 600 \
-          "https://github.com/docker/sbx-releases/releases/download/v0.38.0/DockerSandboxes-linux-${arch}.tar.gz" \
+          "https://github.com/docker/sbx-releases/releases/download/v0.39.0/DockerSandboxes-linux-${arch}.tar.gz" \
           -o "$tmp/sbx.tar.gz"
         actual_sha256="$(sha256sum "$tmp/sbx.tar.gz" | cut -d' ' -f1)"
         if [ "$actual_sha256" != "$expected_sha256" ]; then

@@ -43,7 +43,7 @@ and this project adheres to
   Uncomment `resources:` in `sbxclaude/spec.yaml` to pin a fixed size.
 
 - Pin directly installed sandbox and CI tooling to exact versions (in-sandbox
-  `sbx` `v0.38.0` with SHA-256 verification, Ruff `0.16.2`, yamllint
+  `sbx` `v0.39.0` with SHA-256 verification, Ruff `0.16.2`, yamllint
   `1.38.0`, markdownlint-cli2 `0.23.2`, CSpell `10.0.1`) and pin Context7
   MCP to `4.0.0`. The CI validate job still installs the latest `sbx` CLI so
   schema drift surfaces immediately.
