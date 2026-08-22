@@ -57,6 +57,8 @@ agentInstructions:
     - Python: `python3`, `ruff` for lint and format, `uv` for packages
     - YAML: `yamllint`
     - Markdown and prose: `markdownlint-cli2`, `cspell`
+    - Browser: `playwright`, with headless Chromium — load pages, screenshot
+      them, and read console output to verify UI changes before reporting done
     - General: `git`, `docker`, `curl`, `node`, `npm`
     - Sandbox kits: `sbx`, with the restrictions above
 
@@ -68,6 +70,9 @@ permissions:
   network:
     allow:
       - "registry.npmjs.org:443"
+      # Playwright downloads the Chromium browser binary from these CDN mirrors.
+      - "cdn.playwright.dev:443"
+      - "playwright.download.prss.microsoft.com:443"
       # The local Context7 MCP server calls its documentation API here.
       - "context7.com:443"
       # The repository's GitHub MCP server uses this endpoint.
@@ -232,3 +237,9 @@ setup:
     - command: "npm install --global markdownlint-cli2@0.23.2 cspell@10.0.1"
       user: "1000"
       description: Markdown and spelling linters
+    - command: |
+        set -eu
+        npm install --global playwright@1.62.1
+        playwright install --with-deps chromium
+      user: "1000"
+      description: Playwright with headless Chromium

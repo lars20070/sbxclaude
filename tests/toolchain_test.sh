@@ -8,6 +8,7 @@ EXPECTED_RUFF_VERSION="0.16.2"
 EXPECTED_YAMLLINT_VERSION="1.38.0"
 EXPECTED_MARKDOWNLINT_VERSION="0.23.2"
 EXPECTED_CSPELL_VERSION="10.0.1"
+EXPECTED_PLAYWRIGHT_VERSION="1.62.1"
 
 TESTS=0
 
@@ -66,6 +67,21 @@ check_tool_version yamllint "${EXPECTED_YAMLLINT_VERSION}" yamllint --version
 check_tool_version markdownlint-cli2 "v${EXPECTED_MARKDOWNLINT_VERSION}" markdownlint-cli2 --version
 check_tool_version cspell "${EXPECTED_CSPELL_VERSION}" cspell --version
 check_tool_version sbx "${EXPECTED_SBX_VERSION}" sbx version
+check_tool_version playwright "Version ${EXPECTED_PLAYWRIGHT_VERSION}" playwright --version
+
+# Chromium must actually launch, not just be present — this is what lets the
+# agent verify UI changes in a real browser. If this fails specifically on
+# sandbox/seccomp setup, retry chromium.launch() with { args: ['--no-sandbox'] }.
+CHROMIUM_VERSION="$(NODE_PATH="$(npm root -g)" node -e '
+const { chromium } = require("playwright");
+(async () => {
+  const browser = await chromium.launch();
+  console.log(await browser.version());
+  await browser.close();
+})();
+' 2>&1)" || fail "chromium failed to launch: ${CHROMIUM_VERSION}"
+[[ -n "${CHROMIUM_VERSION}" ]] || fail "chromium launch produced no version output"
+pass "chromium launches headless (${CHROMIUM_VERSION})"
 
 CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
 [[ -s "${CA_BUNDLE}" ]] || fail "CA certificate bundle is missing or empty"

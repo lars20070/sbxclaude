@@ -19,6 +19,9 @@ and this project adheres to
   handling.
 - Pre-installed `jq`, `ripgrep`, `curl`, Python 3, ShellCheck, Ruff,
   yamllint, markdownlint-cli2, and CSpell tooling.
+- Pre-installed Playwright with headless Chromium, so the agent can load
+  pages, take screenshots, and read console output to verify UI changes
+  before reporting them done.
 - In-sandbox `sbx` CLI (pinned release, architecture-matched, checksum
   verified) for daemon-free kit commands (`version`, `kit validate`,
   `kit inspect`, `kit pack`), so the kit can be validated from inside the

@@ -11,6 +11,8 @@ Each sandbox gets:
 - `jq`, `ripgrep`, `curl`, Python 3, and ShellCheck
 - `ruff` and `yamllint` as Python development tools
 - `markdownlint-cli2` and `cspell` for documentation checks
+- Playwright, with headless Chromium, so the agent can load pages and
+  screenshot UI changes itself
 - An `sbx` CLI for daemon-free kit commands (`version`, `kit validate`,
   `kit inspect`, `kit pack`) so `make validate` works inside the sandbox
 - Passwordless `sudo`, and Docker, inside the sandbox
@@ -119,6 +121,7 @@ same known versions:
 | `yamllint` | `sbxclaude/spec.yaml` | `1.38.0` |
 | `markdownlint-cli2` | `sbxclaude/spec.yaml`, CI | `0.23.2` |
 | `cspell` | `sbxclaude/spec.yaml`, CI | `10.0.1` |
+| `playwright` (+ Chromium) | `sbxclaude/spec.yaml` | `1.62.1` |
 | Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` | `4.0.0` |
 
 Intentional exceptions that stay on latest:
