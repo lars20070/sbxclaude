@@ -94,6 +94,8 @@ permissions:
       - "release-assets.githubusercontent.com:443"
       - "pypi.org:443"
       - "files.pythonhosted.org:443"
+      # Pi agent development
+      - "pi.dev"
 
 setup:
   install:
