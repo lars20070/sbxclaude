@@ -153,6 +153,13 @@ EMPTY_NAME="$(run_cli "${EMPTY_SLUG}" name)"
 assert_no_log "name"
 pass "name derivation is unique, stable, and canonical"
 
+# version: reads spec.yaml directly, needs no sbx call.
+clear_log
+VERSION_OUT="$(run_cli "${WORK_A}" version)"
+assert_match "^sbxclaude [0-9]+\.[0-9]+\.[0-9]+$" "${VERSION_OUT}" "version output"
+assert_no_log "version"
+pass "version prints the kit name and version without calling sbx"
+
 SANDBOX="${NAME_A}"
 KIT="${ROOT}/sbxclaude"
 

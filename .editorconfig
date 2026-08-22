@@ -8,10 +8,6 @@ trim_trailing_whitespace = true
 
 [*.md]
 trim_trailing_whitespace = false
-max_line_length = 120
-
-[{scripts/*,tests/*.sh}]
-max_line_length = 120
 
 [Makefile]
 indent_style = tab

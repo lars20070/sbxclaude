@@ -9,7 +9,7 @@ extends: claude
 
 sandbox:
   # OLD CODE:
-  # entrypoint: [claude] # Drops --dangerously-skip-permissions
+  # entrypoint: [claude] # Runs with --dangerously-skip-permissions !!
   #
   # TEMPORARY: works around sbx dropping the parent claude kit's setup when
   # this kit defines its own `setup:` block (see issue https://github.com/docker/sbx-releases/issues/415).
@@ -22,6 +22,9 @@ sandbox:
       owner="$(id -u):$(id -g)"
       if [ -e "$HOME/.claude" ] || [ -L "$HOME/.claude" ]; then
         sudo chown -hR -P "$owner" -- "$HOME/.claude"
+      fi
+      if [ -e "$HOME/.claude.json" ] || [ -L "$HOME/.claude.json" ]; then
+        sudo chown -h -P "$owner" -- "$HOME/.claude.json"
       fi
       exec claude "$@"
     - sbxclaude-entrypoint
@@ -57,8 +60,14 @@ agentInstructions:
     - Python: `python3`, `ruff` for lint and format, `uv` for packages
     - YAML: `yamllint`
     - Markdown and prose: `markdownlint-cli2`, `cspell`
+    - Browser: `playwright`, with headless Chromium — load pages, screenshot
+      them, and read console output to verify UI changes before reporting done
+    - Diagrams: `mmdc` (mermaid-cli) — turn a `.mmd` file into a picture:
+      `mmdc -i diagram.mmd -o diagram.png`
     - General: `git`, `docker`, `curl`, `node`, `npm`
     - Sandbox kits: `sbx`, with the restrictions above
+    - MCP servers: `context7` (up-to-date library/framework docs) and `github`
+      (GitHub API) are configured and ready to use
 
     Prefer `rg` over recursive `grep`, `ruff` over installing another Python
     linter or formatter, and `uv` over `pip`. Install project dependencies when
@@ -68,15 +77,25 @@ permissions:
   network:
     allow:
       - "registry.npmjs.org:443"
-      # The local Context7 MCP server calls its documentation API here.
+      # Playwright downloads the Chromium browser binary from these CDN mirrors.
+      - "cdn.playwright.dev:443"
+      - "playwright.download.prss.microsoft.com:443"
+      # The Context7 MCP server (baked into every sandbox via
+      # files/home/.claude.json) calls its documentation API here.
       - "context7.com:443"
-      # The repository's GitHub MCP server uses this endpoint.
+      # The GitHub MCP server (baked into every sandbox via
+      # files/home/.claude.json) uses this endpoint.
       - "api.githubcopilot.com:443"
       - "github.com:443"
+      # Gist
+      - "gist.github.com:443"
+      - "gist.githubusercontent.com:443"
       # GitHub release assets redirect here; needed to download the sbx binary.
       - "release-assets.githubusercontent.com:443"
       - "pypi.org:443"
       - "files.pythonhosted.org:443"
+      # Pi agent development
+      - "pi.dev"
 
 setup:
   install:
@@ -94,13 +113,13 @@ setup:
     - command: |
         set -eu
         arch="$(dpkg --print-architecture)"
-        # Digests of the v0.38.0 release assets.
+        # Digests of the v0.39.0 release assets.
         case "$arch" in
           amd64)
-            expected_sha256="9ebcea831d4d270e25ae1777bf15e24756abfbf8791ad27294754682838ed00b"
+            expected_sha256="2ec45bc7938c20c2f406fe8cc72294ad5a954bdc047601484b89bf1a108311d4"
             ;;
           arm64)
-            expected_sha256="051fdf8349f8a66db47a990e11a30cd1d2e013ac6c8e42e48c072bfcec06a1d5"
+            expected_sha256="39c470a5f5e0991b1c2358952e2ab32a7b0309bfa57ac62b6bbc64b466d02c17"
             ;;
           *)
             echo "unsupported architecture for sbx: $arch" >&2
@@ -110,7 +129,7 @@ setup:
         tmp="$(mktemp -d)"
         trap 'rm -rf "$tmp"' EXIT
         curl -fsSL --retry 3 --retry-delay 2 --max-time 600 \
-          "https://github.com/docker/sbx-releases/releases/download/v0.38.0/DockerSandboxes-linux-${arch}.tar.gz" \
+          "https://github.com/docker/sbx-releases/releases/download/v0.39.0/DockerSandboxes-linux-${arch}.tar.gz" \
           -o "$tmp/sbx.tar.gz"
         actual_sha256="$(sha256sum "$tmp/sbx.tar.gz" | cut -d' ' -f1)"
         if [ "$actual_sha256" != "$expected_sha256" ]; then
@@ -232,3 +251,30 @@ setup:
     - command: "npm install --global markdownlint-cli2@0.23.2 cspell@10.0.1"
       user: "1000"
       description: Markdown and spelling linters
+    - command: |
+        set -eu
+        npm install --global playwright@1.62.1
+        playwright install --with-deps chromium
+      user: "1000"
+      description: Playwright with headless Chromium
+    - command: |
+        set -eu
+        # PUPPETEER_SKIP_DOWNLOAD avoids fetching a second Chromium: mmdc
+        # reuses the one Playwright just installed, below.
+        PUPPETEER_SKIP_DOWNLOAD=1 npm install --global @mermaid-js/mermaid-cli@11.16.0
+        chromium_path="$(NODE_PATH="$(npm root -g)" node -e \
+          'console.log(require("playwright").chromium.executablePath())')"
+        mmdc_bin="$(command -v mmdc)"
+        config="$(dirname "$mmdc_bin")/mermaid-puppeteer-config.json"
+        printf '{"executablePath": "%s"}\n' "$chromium_path" > "$config"
+        # mmdc only takes its Puppeteer config via an explicit flag, so wrap
+        # the real binary to always pass it — keeps `mmdc -i a.mmd -o a.png`
+        # working with no extra flags for the agent.
+        mv "$mmdc_bin" "${mmdc_bin}.real"
+        cat > "$mmdc_bin" <<WRAPPER
+        #!/bin/sh
+        exec "${mmdc_bin}.real" --puppeteerConfigFile "${config}" "\$@"
+        WRAPPER
+        chmod +x "$mmdc_bin"
+      user: "1000"
+      description: mermaid-cli, reusing the Playwright Chromium

@@ -11,6 +11,10 @@ Each sandbox gets:
 - `jq`, `ripgrep`, `curl`, Python 3, and ShellCheck
 - `ruff` and `yamllint` as Python development tools
 - `markdownlint-cli2` and `cspell` for documentation checks
+- Playwright, with headless Chromium, so the agent can load pages and
+  screenshot UI changes itself
+- mermaid-cli (`mmdc`), reusing that same Chromium, so the agent can render
+  Mermaid diagrams to PNG/SVG from the terminal
 - An `sbx` CLI for daemon-free kit commands (`version`, `kit validate`,
   `kit inspect`, `kit pack`) so `make validate` works inside the sandbox
 - Passwordless `sudo`, and Docker, inside the sandbox
@@ -20,6 +24,8 @@ Each sandbox gets:
 - Your project mounted as the workspace — edits land on your real files
 - GitHub SSH remotes rewritten to HTTPS inside the sandbox, so `git fetch`
   works on the allowlisted port 443 without changing the host checkout
+- Context7 and GitHub MCP servers, so the agent can pull current library docs
+  and use GitHub's MCP tools regardless of the project's own MCP configuration
 
 The kit spec lives in `sbxclaude/spec.yaml`. `scripts/sbxclaude` is a wrapper
 around the `sbx` CLI that builds (or re-attaches to) one sandbox per project,
@@ -36,7 +42,7 @@ You need macOS 14 or later on Apple silicon, or Linux on x86_64 or aarch64 with
 KVM available. Docker Desktop is not required. Install the `sbx` CLI, sign in,
 and put `sbxclaude` on your `PATH`.
 
-macOS:
+[macOS:](https://docs.docker.com/ai/sandboxes/install/#install-on-macos)
 
 ```bash
 brew trust docker/tap
@@ -45,7 +51,7 @@ sbx login
 ln -s /path_to_sbxclaude_repo/scripts/sbxclaude ~/.local/bin/sbxclaude
 ```
 
-Linux:
+[Linux:](https://docs.docker.com/ai/sandboxes/install/#linux)
 
 ```bash
 curl -fsSL https://get.docker.com | sudo REPO_ONLY=1 sh
@@ -80,6 +86,7 @@ sbxclaude exec bash
 | `sbxclaude create` | Build the sandbox without attaching |
 | `sbxclaude rm` | Remove the sandbox after confirmation |
 | `sbxclaude name` | Print the derived sandbox name |
+| `sbxclaude version` | Print the kit name and version |
 | `sbxclaude exec CMD...` | Run a command inside the sandbox |
 | `sbxclaude inspect` | Show the sandbox's state |
 | `sbxclaude policy log` | Show the sandbox policy log |
@@ -114,12 +121,14 @@ same known versions:
 
 | Tool | Where pinned | Version |
 | --- | --- | --- |
-| `sbx` (in-sandbox) | `sbxclaude/spec.yaml` | `v0.38.0` (SHA-256 verified) |
+| `sbx` (in-sandbox) | `sbxclaude/spec.yaml` | `v0.39.0` (SHA-256 verified) |
 | `ruff` | `sbxclaude/spec.yaml` | `0.16.2` |
 | `yamllint` | `sbxclaude/spec.yaml` | `1.38.0` |
 | `markdownlint-cli2` | `sbxclaude/spec.yaml`, CI | `0.23.2` |
 | `cspell` | `sbxclaude/spec.yaml`, CI | `10.0.1` |
-| Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` | `4.0.0` |
+| `playwright` (+ Chromium) | `sbxclaude/spec.yaml` | `1.62.1` |
+| `mermaid-cli` (`mmdc`) | `sbxclaude/spec.yaml` | `11.16.0` |
+| Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `sbxclaude/files/home/.claude.json` | `4.0.0` |
 
 Intentional exceptions that stay on latest:
 

@@ -3,11 +3,14 @@
 # Keep EXPECTED_* in sync with the pinned installs in sbxclaude/spec.yaml.
 set -euo pipefail
 
-EXPECTED_SBX_VERSION="v0.38.0"
+EXPECTED_SBX_VERSION="v0.39.0"
 EXPECTED_RUFF_VERSION="0.16.2"
 EXPECTED_YAMLLINT_VERSION="1.38.0"
 EXPECTED_MARKDOWNLINT_VERSION="0.23.2"
 EXPECTED_CSPELL_VERSION="10.0.1"
+EXPECTED_PLAYWRIGHT_VERSION="1.62.1"
+EXPECTED_MERMAID_VERSION="11.16.0"
+EXPECTED_CONTEXT7_MCP_VERSION="4.0.0"
 
 TESTS=0
 
@@ -66,6 +69,34 @@ check_tool_version yamllint "${EXPECTED_YAMLLINT_VERSION}" yamllint --version
 check_tool_version markdownlint-cli2 "v${EXPECTED_MARKDOWNLINT_VERSION}" markdownlint-cli2 --version
 check_tool_version cspell "${EXPECTED_CSPELL_VERSION}" cspell --version
 check_tool_version sbx "${EXPECTED_SBX_VERSION}" sbx version
+check_tool_version playwright "Version ${EXPECTED_PLAYWRIGHT_VERSION}" playwright --version
+
+# Chromium must actually launch, not just be present — this is what lets the
+# agent verify UI changes in a real browser. If this fails specifically on
+# sandbox/seccomp setup, retry chromium.launch() with { args: ['--no-sandbox'] }.
+CHROMIUM_VERSION="$(NODE_PATH="$(npm root -g)" node -e '
+const { chromium } = require("playwright");
+(async () => {
+  const browser = await chromium.launch();
+  console.log(await browser.version());
+  await browser.close();
+})();
+' 2>&1)" || fail "chromium failed to launch: ${CHROMIUM_VERSION}"
+[[ -n "${CHROMIUM_VERSION}" ]] || fail "chromium launch produced no version output"
+pass "chromium launches headless (${CHROMIUM_VERSION})"
+
+check_tool_version mmdc "${EXPECTED_MERMAID_VERSION}" mmdc --version
+
+# Rendering must actually work, not just report a version — this is what
+# proves the mmdc wrapper correctly reuses the Playwright Chromium instead of
+# needing its own.
+MMDC_TMPDIR="$(mktemp -d)"
+trap 'rm -rf "${MMDC_TMPDIR}"' EXIT
+printf 'graph TD\n  A --> B\n' >"${MMDC_TMPDIR}/diagram.mmd"
+mmdc -i "${MMDC_TMPDIR}/diagram.mmd" -o "${MMDC_TMPDIR}/diagram.png" >/dev/null 2>&1 ||
+	fail "mmdc failed to render a diagram"
+[[ -s "${MMDC_TMPDIR}/diagram.png" ]] || fail "mmdc produced an empty or missing PNG"
+pass "mmdc renders a diagram using the reused Playwright Chromium"
 
 CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
 [[ -s "${CA_BUNDLE}" ]] || fail "CA certificate bundle is missing or empty"
@@ -179,5 +210,31 @@ check_guard_blocks "a blocked WebFetch of a URL containing CLAUDE.md" \
 check_guard_blocks "a blocked WebFetch of a URL containing spec.yaml" \
 	'{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/spec.yaml"},"tool_response":{"content":"Blocked by local rule for z.test"}}' \
 	'sbx policy allow network "z.test"'
+
+# User-scope MCP servers baked into every sandbox via
+# sbxclaude/files/home/.claude.json, so Context7 and GitHub MCP tools are
+# available regardless of the target project's own MCP configuration.
+CLAUDE_JSON="${HOME}/.claude.json"
+
+[[ -s "${CLAUDE_JSON}" ]] || fail "${CLAUDE_JSON} is missing (${REBUILD_HINT})"
+jq -e . "${CLAUDE_JSON}" >/dev/null 2>&1 ||
+	fail "${CLAUDE_JSON} is not valid JSON"
+pass "${CLAUDE_JSON} is valid JSON"
+
+# Guards against the same root-ownership defect the entrypoint chown already
+# works around for ~/.claude (see spec.yaml, issue #415).
+[[ -O "${CLAUDE_JSON}" ]] || fail "${CLAUDE_JSON} is not owned by the sandbox user"
+pass "${CLAUDE_JSON} is owned by the sandbox user"
+
+jq -e --arg v "@upstash/context7-mcp@${EXPECTED_CONTEXT7_MCP_VERSION}" \
+	'.mcpServers.context7.args | index($v) != null' \
+	"${CLAUDE_JSON}" >/dev/null ||
+	fail "context7 MCP server missing or wrong pinned version in ${CLAUDE_JSON}"
+pass "context7 MCP server is pinned to ${EXPECTED_CONTEXT7_MCP_VERSION}"
+
+jq -e '.mcpServers.github.url == "https://api.githubcopilot.com/mcp/"' \
+	"${CLAUDE_JSON}" >/dev/null ||
+	fail "github MCP server missing or has the wrong URL in ${CLAUDE_JSON}"
+pass "github MCP server is configured"
 
 echo "All ${TESTS} toolchain tests passed."

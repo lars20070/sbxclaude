@@ -86,6 +86,9 @@
     "Centralised",
     "organisation",
     "behaviour",
-    "heredocs"
+    "heredocs",
+    "prss",
+    "seccomp",
+    "mmdc"
   ]
 }

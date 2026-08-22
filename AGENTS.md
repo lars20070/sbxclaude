@@ -66,6 +66,13 @@ The wrapper has to run unchanged on macOS and Linux hosts.
 - Skip entries for tests, formatting, internal refactors, and documentation
   changes that do not affect users.
 - For a release, move the relevant entries to `## [X.Y.Z] - YYYY-MM-DD`.
+- Bump `version:` in `sbxclaude/spec.yaml` to match `X.Y.Z` in the same
+  commit that cuts the `## [X.Y.Z] - YYYY-MM-DD` heading — `make lint` fails
+  if the two disagree.
+- Restore an empty `## [Unreleased]` heading above the new release heading.
+- Tag that commit `vX.Y.Z` once `spec.yaml` and `CHANGELOG.md` agree.
+  Pushing the tag and publishing the kit itself are separate steps this
+  repo does not yet define; confirm before pushing a tag anywhere.
 
 ## Skills
 

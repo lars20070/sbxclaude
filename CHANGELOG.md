@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-22
+
 ### Added
 
 - Initial Docker Sandbox Kit for running Claude Code with Docker, passwordless
@@ -19,6 +21,12 @@ and this project adheres to
   handling.
 - Pre-installed `jq`, `ripgrep`, `curl`, Python 3, ShellCheck, Ruff,
   yamllint, markdownlint-cli2, and CSpell tooling.
+- Pre-installed Playwright with headless Chromium, so the agent can load
+  pages, take screenshots, and read console output to verify UI changes
+  before reporting them done.
+- Pre-installed mermaid-cli (`mmdc`), reusing the existing Playwright
+  Chromium, so the agent can render Mermaid diagrams to PNG/SVG from the
+  terminal.
 - In-sandbox `sbx` CLI (pinned release, architecture-matched, checksum
   verified) for daemon-free kit commands (`version`, `kit validate`,
   `kit inspect`, `kit pack`), so the kit can be validated from inside the
@@ -35,6 +43,10 @@ and this project adheres to
 - Install instructions and host requirements for Linux alongside macOS.
 - `sbxclaude help` and `sbxclaude name` work before the `sbx` CLI is installed,
   and the commands that need it report both install recipes when it is missing.
+- Context7 and GitHub MCP servers baked into every sandbox as user-scope MCP
+  servers (`sbxclaude/files/home/.claude.json`), so they are available
+  regardless of whether the target project defines its own. The GitHub server
+  authenticates with the `GITHUB_TOKEN` the sandbox proxy already provides.
 
 ### Changed
 
@@ -43,7 +55,7 @@ and this project adheres to
   Uncomment `resources:` in `sbxclaude/spec.yaml` to pin a fixed size.
 
 - Pin directly installed sandbox and CI tooling to exact versions (in-sandbox
-  `sbx` `v0.38.0` with SHA-256 verification, Ruff `0.16.2`, yamllint
+  `sbx` `v0.39.0` with SHA-256 verification, Ruff `0.16.2`, yamllint
   `1.38.0`, markdownlint-cli2 `0.23.2`, CSpell `10.0.1`) and pin Context7
   MCP to `4.0.0`. The CI validate job still installs the latest `sbx` CLI so
   schema drift surfaces immediately.
