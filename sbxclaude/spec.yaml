@@ -8,8 +8,23 @@ description: Claude Code with custom toolchain
 extends: claude
 
 sandbox:
-  entrypoint: [claude] # Runs with --dangerously-skip-permissions !!
-# resources:
+  # OLD CODE:
+  # entrypoint: [claude] # Runs with --dangerously-skip-permissions !!
+  #
+  # TEMPORARY: works around sbx dropping the parent claude kit's setup when
+  # this kit defines its own `setup:` block (see issue https://github.com/docker/sbx-releases/issues/415).
+  # Revert to `entrypoint: [claude]` once sbx merges parent and child setup instead of replacing.
+  entrypoint:
+    - sh
+    - -c
+    - |
+      set -eu
+      owner="$(id -u):$(id -g)"
+      if [ -e "$HOME/.claude" ] || [ -L "$HOME/.claude" ]; then
+        sudo chown -hR -P "$owner" -- "$HOME/.claude"
+      fi
+      exec claude "$@"
+    - sbxclaude-entrypoint# resources:
 #   cpu: 8
 #   memory: 24g
 
