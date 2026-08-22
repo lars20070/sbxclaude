@@ -62,6 +62,8 @@ agentInstructions:
     - Markdown and prose: `markdownlint-cli2`, `cspell`
     - Browser: `playwright`, with headless Chromium — load pages, screenshot
       them, and read console output to verify UI changes before reporting done
+    - Diagrams: `mmdc` (mermaid-cli) — turn a `.mmd` file into a picture:
+      `mmdc -i diagram.mmd -o diagram.png`
     - General: `git`, `docker`, `curl`, `node`, `npm`
     - Sandbox kits: `sbx`, with the restrictions above
 
@@ -248,3 +250,24 @@ setup:
         playwright install --with-deps chromium
       user: "1000"
       description: Playwright with headless Chromium
+    - command: |
+        set -eu
+        # PUPPETEER_SKIP_DOWNLOAD avoids fetching a second Chromium: mmdc
+        # reuses the one Playwright just installed, below.
+        PUPPETEER_SKIP_DOWNLOAD=1 npm install --global @mermaid-js/mermaid-cli@11.16.0
+        chromium_path="$(NODE_PATH="$(npm root -g)" node -e \
+          'console.log(require("playwright").chromium.executablePath())')"
+        mmdc_bin="$(command -v mmdc)"
+        config="$(dirname "$mmdc_bin")/mermaid-puppeteer-config.json"
+        printf '{"executablePath": "%s"}\n' "$chromium_path" > "$config"
+        # mmdc only takes its Puppeteer config via an explicit flag, so wrap
+        # the real binary to always pass it — keeps `mmdc -i a.mmd -o a.png`
+        # working with no extra flags for the agent.
+        mv "$mmdc_bin" "${mmdc_bin}.real"
+        cat > "$mmdc_bin" <<WRAPPER
+        #!/bin/sh
+        exec "${mmdc_bin}.real" --puppeteerConfigFile "${config}" "\$@"
+        WRAPPER
+        chmod +x "$mmdc_bin"
+      user: "1000"
+      description: mermaid-cli, reusing the Playwright Chromium

@@ -9,6 +9,7 @@ EXPECTED_YAMLLINT_VERSION="1.38.0"
 EXPECTED_MARKDOWNLINT_VERSION="0.23.2"
 EXPECTED_CSPELL_VERSION="10.0.1"
 EXPECTED_PLAYWRIGHT_VERSION="1.62.1"
+EXPECTED_MERMAID_VERSION="11.16.0"
 EXPECTED_CONTEXT7_MCP_VERSION="4.0.0"
 
 TESTS=0
@@ -83,6 +84,19 @@ const { chromium } = require("playwright");
 ' 2>&1)" || fail "chromium failed to launch: ${CHROMIUM_VERSION}"
 [[ -n "${CHROMIUM_VERSION}" ]] || fail "chromium launch produced no version output"
 pass "chromium launches headless (${CHROMIUM_VERSION})"
+
+check_tool_version mmdc "${EXPECTED_MERMAID_VERSION}" mmdc --version
+
+# Rendering must actually work, not just report a version — this is what
+# proves the mmdc wrapper correctly reuses the Playwright Chromium instead of
+# needing its own.
+MMDC_TMPDIR="$(mktemp -d)"
+trap 'rm -rf "${MMDC_TMPDIR}"' EXIT
+printf 'graph TD\n  A --> B\n' >"${MMDC_TMPDIR}/diagram.mmd"
+mmdc -i "${MMDC_TMPDIR}/diagram.mmd" -o "${MMDC_TMPDIR}/diagram.png" >/dev/null 2>&1 ||
+	fail "mmdc failed to render a diagram"
+[[ -s "${MMDC_TMPDIR}/diagram.png" ]] || fail "mmdc produced an empty or missing PNG"
+pass "mmdc renders a diagram using the reused Playwright Chromium"
 
 CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
 [[ -s "${CA_BUNDLE}" ]] || fail "CA certificate bundle is missing or empty"

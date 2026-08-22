@@ -22,6 +22,9 @@ and this project adheres to
 - Pre-installed Playwright with headless Chromium, so the agent can load
   pages, take screenshots, and read console output to verify UI changes
   before reporting them done.
+- Pre-installed mermaid-cli (`mmdc`), reusing the existing Playwright
+  Chromium, so the agent can render Mermaid diagrams to PNG/SVG from the
+  terminal.
 - In-sandbox `sbx` CLI (pinned release, architecture-matched, checksum
   verified) for daemon-free kit commands (`version`, `kit validate`,
   `kit inspect`, `kit pack`), so the kit can be validated from inside the

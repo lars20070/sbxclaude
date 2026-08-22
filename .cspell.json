@@ -88,6 +88,7 @@
     "behaviour",
     "heredocs",
     "prss",
-    "seccomp"
+    "seccomp",
+    "mmdc"
   ]
 }

@@ -13,6 +13,8 @@ Each sandbox gets:
 - `markdownlint-cli2` and `cspell` for documentation checks
 - Playwright, with headless Chromium, so the agent can load pages and
   screenshot UI changes itself
+- mermaid-cli (`mmdc`), reusing that same Chromium, so the agent can render
+  Mermaid diagrams to PNG/SVG from the terminal
 - An `sbx` CLI for daemon-free kit commands (`version`, `kit validate`,
   `kit inspect`, `kit pack`) so `make validate` works inside the sandbox
 - Passwordless `sudo`, and Docker, inside the sandbox
@@ -124,6 +126,7 @@ same known versions:
 | `markdownlint-cli2` | `sbxclaude/spec.yaml`, CI | `0.23.2` |
 | `cspell` | `sbxclaude/spec.yaml`, CI | `10.0.1` |
 | `playwright` (+ Chromium) | `sbxclaude/spec.yaml` | `1.62.1` |
+| `mermaid-cli` (`mmdc`) | `sbxclaude/spec.yaml` | `11.16.0` |
 | Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `sbxclaude/files/home/.claude.json` | `4.0.0` |
 
 Intentional exceptions that stay on latest:
