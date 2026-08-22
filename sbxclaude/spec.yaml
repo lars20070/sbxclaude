@@ -24,7 +24,8 @@ sandbox:
         sudo chown -hR -P "$owner" -- "$HOME/.claude"
       fi
       exec claude "$@"
-    - sbxclaude-entrypoint# resources:
+    - sbxclaude-entrypoint
+# resources:
 #   cpu: 8
 #   memory: 24g
 
