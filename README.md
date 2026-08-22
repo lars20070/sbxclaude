@@ -22,6 +22,8 @@ Each sandbox gets:
 - Your project mounted as the workspace — edits land on your real files
 - GitHub SSH remotes rewritten to HTTPS inside the sandbox, so `git fetch`
   works on the allowlisted port 443 without changing the host checkout
+- Context7 and GitHub MCP servers, so the agent can pull current library docs
+  and use GitHub's MCP tools regardless of the project's own MCP configuration
 
 The kit spec lives in `sbxclaude/spec.yaml`. `scripts/sbxclaude` is a wrapper
 around the `sbx` CLI that builds (or re-attaches to) one sandbox per project,
@@ -122,7 +124,7 @@ same known versions:
 | `markdownlint-cli2` | `sbxclaude/spec.yaml`, CI | `0.23.2` |
 | `cspell` | `sbxclaude/spec.yaml`, CI | `10.0.1` |
 | `playwright` (+ Chromium) | `sbxclaude/spec.yaml` | `1.62.1` |
-| Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` | `4.0.0` |
+| Context7 MCP | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `sbxclaude/files/home/.claude.json` | `4.0.0` |
 
 Intentional exceptions that stay on latest:
 

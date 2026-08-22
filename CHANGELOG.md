@@ -38,6 +38,10 @@ and this project adheres to
 - Install instructions and host requirements for Linux alongside macOS.
 - `sbxclaude help` and `sbxclaude name` work before the `sbx` CLI is installed,
   and the commands that need it report both install recipes when it is missing.
+- Context7 and GitHub MCP servers baked into every sandbox as user-scope MCP
+  servers (`sbxclaude/files/home/.claude.json`), so they are available
+  regardless of whether the target project defines its own. The GitHub server
+  authenticates with the `GITHUB_TOKEN` the sandbox proxy already provides.
 
 ### Changed
 

@@ -9,6 +9,7 @@ EXPECTED_YAMLLINT_VERSION="1.38.0"
 EXPECTED_MARKDOWNLINT_VERSION="0.23.2"
 EXPECTED_CSPELL_VERSION="10.0.1"
 EXPECTED_PLAYWRIGHT_VERSION="1.62.1"
+EXPECTED_CONTEXT7_MCP_VERSION="4.0.0"
 
 TESTS=0
 
@@ -195,5 +196,31 @@ check_guard_blocks "a blocked WebFetch of a URL containing CLAUDE.md" \
 check_guard_blocks "a blocked WebFetch of a URL containing spec.yaml" \
 	'{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/spec.yaml"},"tool_response":{"content":"Blocked by local rule for z.test"}}' \
 	'sbx policy allow network "z.test"'
+
+# User-scope MCP servers baked into every sandbox via
+# sbxclaude/files/home/.claude.json, so Context7 and GitHub MCP tools are
+# available regardless of the target project's own MCP configuration.
+CLAUDE_JSON="${HOME}/.claude.json"
+
+[[ -s "${CLAUDE_JSON}" ]] || fail "${CLAUDE_JSON} is missing (${REBUILD_HINT})"
+jq -e . "${CLAUDE_JSON}" >/dev/null 2>&1 ||
+	fail "${CLAUDE_JSON} is not valid JSON"
+pass "${CLAUDE_JSON} is valid JSON"
+
+# Guards against the same root-ownership defect the entrypoint chown already
+# works around for ~/.claude (see spec.yaml, issue #415).
+[[ -O "${CLAUDE_JSON}" ]] || fail "${CLAUDE_JSON} is not owned by the sandbox user"
+pass "${CLAUDE_JSON} is owned by the sandbox user"
+
+jq -e --arg v "@upstash/context7-mcp@${EXPECTED_CONTEXT7_MCP_VERSION}" \
+	'.mcpServers.context7.args | index($v) != null' \
+	"${CLAUDE_JSON}" >/dev/null ||
+	fail "context7 MCP server missing or wrong pinned version in ${CLAUDE_JSON}"
+pass "context7 MCP server is pinned to ${EXPECTED_CONTEXT7_MCP_VERSION}"
+
+jq -e '.mcpServers.github.url == "https://api.githubcopilot.com/mcp/"' \
+	"${CLAUDE_JSON}" >/dev/null ||
+	fail "github MCP server missing or has the wrong URL in ${CLAUDE_JSON}"
+pass "github MCP server is configured"
 
 echo "All ${TESTS} toolchain tests passed."
